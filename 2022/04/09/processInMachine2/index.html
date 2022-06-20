@@ -1,0 +1,780 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="CH3CHOHCH3">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="这是“程序的机器级表示”系列的第二篇文章。本篇介绍RISC-V的常用指令，帮助建立汇编编程的初步印象。            我们已经知道，处理器执行的大部分指令都是在存取、运算、比较寄存器和主存中的数据，或是确定下一条指令的位置（PC的值）以实现循环、分支等功能。下面，我们来介绍RISC-V指令集中的各种指令，了解如何用RISC-V编写简单的程序。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RISC-V的常见指令">
+<meta property="og:url" content="http://example.com/2022/04/09/processInMachine2/index.html">
+<meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
+<meta property="og:description" content="这是“程序的机器级表示”系列的第二篇文章。本篇介绍RISC-V的常用指令，帮助建立汇编编程的初步印象。            我们已经知道，处理器执行的大部分指令都是在存取、运算、比较寄存器和主存中的数据，或是确定下一条指令的位置（PC的值）以实现循环、分支等功能。下面，我们来介绍RISC-V指令集中的各种指令，了解如何用RISC-V编写简单的程序。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-04-09T07:00:00.000Z">
+<meta property="article:modified_time" content="2022-04-13T14:53:16.000Z">
+<meta property="article:author" content="CH3CHOHCH3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>RISC-V的常见指令 - CH3CHOHCH3&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.1","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>CH3CHOHCH3&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archives-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-categories-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/bg/index.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="RISC-V的常见指令"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-04-09 15:00" pubdate>
+          2022年4月9日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          31 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">RISC-V的常见指令</h1>
+            
+            <div class="markdown-body">
+              
+              <div class="note note-light">
+            <p>这是“程序的机器级表示”系列的第二篇文章。本篇介绍RISC-V的常用指令，帮助建立汇编编程的初步印象。</p>
+          </div>
+<p>我们已经知道，处理器执行的大部分指令都是在存取、运算、比较寄存器和主存中的数据，或是确定下一条指令的位置（PC的值）以实现循环、分支等功能。下面，我们来介绍RISC-V指令集中的各种指令，了解如何用RISC-V编写简单的程序。</p>
+<div class="note note-info">
+            <p>历史上，指令集的设计有RISC（Reduced Instruction Set Computer）和CISC（Complex Instruction Set Computer）两种理念，从名字中可以看出，RISC强调指令集的精简，CISC则强调指令集的复杂。CISC中的指令种类要多得多，单条指令的功能也往往比RISC更复杂，同样的指令在RISC中可能需要多条指令实现。因此CISC完成任务需要的指令数更少，但代码的编写、CPU的设计也更为复杂。Intel的x86是CISC的代表，而移动端和嵌入式设备中常见的arm（Advanced RISC Machine）则是RISC的代表。</p>
+          </div>
+<div class="note note-info">
+            <p>RISC-V读作“risk-five”，是加州大学伯克利分校设计的一种开源ISA（x86是闭源的），其目标是称为ISA领域的Linux。该项目发起于2010年，为解决常见指令集的诸多问题：闭源，扼制创新；过于复杂，不利于学术研究，且很多复杂性源于历史或设计问题；针对性强，如arm面向移动端，x86面向服务器，缺少统一性架构；商业指令集易受企业发展的影响。</p>
+          </div>
+<h1 id="运算指令"><a href="#运算指令" class="headerlink" title="运算指令"></a>运算指令</h1><p>RISC-V中的运算指令包括算术运算，逻辑运算，移位运算。运算只在寄存器之间运行，即想要对内存中的数据进行运算，需要先将其取至寄存器。</p>
+<p>这里介绍立即数的概念。汇编中立即数即为常数，一般在运算时会对其作<strong>符号扩展</strong>，关于符号扩展和零扩展会在介绍RISC-V的机器码表示时介绍。</p>
+<p>值得注意的是，RISC-V中有一个寄存器x0被硬编码为0，其值无法修改，作为常数存在。</p>
+<h2 id="算术运算"><a href="#算术运算" class="headerlink" title="算术运算"></a>算术运算</h2><ul>
+<li><code>add rd,rs1,rs2</code>：将寄存器rs1与rs2的值相加并写入寄存器rd。</li>
+<li><code>sub rd,rs1,rs2</code>：将寄存器rs1与rs2的值相减并写入寄存器rd。</li>
+<li><code>addi rd,rs1,imm</code>：将寄存器rs1的值与立即数imm相加并存入寄存器rd。</li>
+<li><code>mul rd,rs1,rs2</code>：将寄存器rs1与rs2的值相乘并写入寄存器rd。</li>
+<li><code>div rd,rs1,rs2</code>：将寄存器rs1除以寄存器rs2的值，向零舍入并写入寄存器rd。</li>
+<li><code>rem rd,rs1,rs2</code>：将寄存器rs1模寄存器rs2的值并写入寄存器rd。</li>
+</ul>
+<p>以上运算发生溢出时会自动截断高位。乘法可以用<code>mulh</code>，<code>mulhu</code>获得两个32位数乘积的高32位，细节不赘述。</p>
+<h2 id="逻辑运算"><a href="#逻辑运算" class="headerlink" title="逻辑运算"></a>逻辑运算</h2><ul>
+<li><code>and rd,rs1,rs2</code>：将寄存器rs1与rs2的值按位与并写入寄存器rd。</li>
+<li><code>andi rd,rs1,imm</code>：将寄存器rs1的值与立即数imm的值按位与并写入寄存器rd。</li>
+<li><code>or rd,rs1,rs2</code>：将寄存器rs1与rs2的值按位或并写入寄存器rd。</li>
+<li><code>ori rd,rs1,imm</code>：将寄存器rs1的值与立即数imm的值按位或并写入寄存器rd。</li>
+<li><code>xor rd,rs1,rs2</code>：将寄存器rs1与rs2的值按位异或并写入寄存器rd。</li>
+<li><code>xori rd,rs1,imm</code>：将寄存器rs1的值与立即数imm的值按位异或并写入寄存器rd。</li>
+</ul>
+<h2 id="移位运算"><a href="#移位运算" class="headerlink" title="移位运算"></a>移位运算</h2><ul>
+<li><code>sll rd,rs1,rs2</code>：将寄存器rs1的值左移寄存器rs2的值这么多位，并写入寄存器rd。</li>
+<li><code>slli rd,rs1,imm</code>：将寄存器rs1的值左移立即数imm的值这么多位，并写入寄存器rd。</li>
+<li><code>srl rd,rs1,rs2</code>：将寄存器rs1的值逻辑右移寄存器rs2的值这么多位，并写入寄存器rd。</li>
+<li><code>srli rd,rs1,imm</code>：将寄存器rs1的值逻辑右移立即数imm的值这么多位，并写入寄存器rd。</li>
+<li><code>sra rd,rs1,rs2</code>：将寄存器rs1的值算数右移寄存器rs2的值这么多位，并写入寄存器rd。</li>
+<li><code>srai rd,rs1,imm</code>：将寄存器rs1的值算数右移立即数imm的值这么多位，并写入寄存器rd。</li>
+</ul>
+<p>左移会在右边补0，逻辑右移会在最高位添0，算数右移在最高位添加符号位。</p>
+<p>区分算数右移和逻辑右移，是从计算的角度考虑的：左移一位等于乘2，右移一位等于除2是算数的规律；无论正数负数，在右边补0都等于乘2；而负数进行逻辑右移的结果不等于除以2，需要用算数右移；而若只有算术右移，则无符号数的运算又会受影响。</p>
+<h1 id="数据传输指令"><a href="#数据传输指令" class="headerlink" title="数据传输指令"></a>数据传输指令</h1><p>前面讲到，想要对主存中的数据进行运算，需要先将其取至寄存器，数据传输指令实现了这个目的。</p>
+<p>现代计算机以<strong>字节</strong>（byte，1byte=8bits)为基本单位，而内存本身可被视作由byte组成的一维数组，地址从0开始。<strong>字</strong>（word)则是存取数据的另一个单位，在RISC-V中1word=4Bytes=32bits，在其他体系结构中可能会发生变化。</p>
+<ul>
+<li><code>lb rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读一个字节，符号扩展后存入rd</li>
+<li><code>lh rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读半个字，符号扩展后存入rd</li>
+<li><code>lw rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读一个字，符号扩展后存入rd</li>
+<li><code>lbu rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读一个无符号的字节，零扩展后存入rd</li>
+<li><code>lhu rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读半个无符号的字，零扩展后存入rd</li>
+<li><code>lwu rd,offset(rs1)</code>：从地址为寄存器rs1的值加offset的主存中读一个无符号的字，零扩展后存入rd</li>
+<li><code>sb rs1,offset(rs2)</code>：把寄存器rs1的值存入地址为寄存器rs2的值加offset的主存中，保留最右端的8位</li>
+<li><code>sh rs1,offset(rs2)</code>：把寄存器rs1的值存入地址为寄存器rs2的值加offset的主存中，保留最右端的16位</li>
+<li><code>sw rs1,offset(rs2)</code>：把寄存器rs1的值存入地址为寄存器rs2的值加offset的主存中，保留最右端的32位</li>
+</ul>
+<div class="note note-info">
+            <p>l是load的首字母，即加载数据；s是store的缩写，即存储数据。b，h，w分别是byte，half word，word的首字母，除此之外还有存取双字的d，即double word。</p>
+          </div>
+<p>举例：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">long</span> <span class="hljs-type">long</span> A[<span class="hljs-number">100</span>];<br>A[<span class="hljs-number">10</span>] = A[<span class="hljs-number">3</span>] + a;<br></code></pre></td></tr></table></figure>
+<p>假设数组A首地址在寄存器x3，a在x2：</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">ld</span> x10,<span class="hljs-number">24</span>(x3)       # long long占<span class="hljs-number">64</span>bits=<span class="hljs-number">8</span>bytes，A[<span class="hljs-number">3</span>]的地址为A[<span class="hljs-number">0</span>]+<span class="hljs-number">3</span>*<span class="hljs-number">8</span><br><span class="hljs-attribute">add</span> x10,x2,x10<br><span class="hljs-attribute">sd</span> x10,<span class="hljs-number">80</span>(x3)<br></code></pre></td></tr></table></figure>
+<h1 id="比较指令"><a href="#比较指令" class="headerlink" title="比较指令"></a>比较指令</h1><p>有符号数：</p>
+<ul>
+<li><code>slt rd,rs1,rs2</code>：若rs1的值小于rs2的值，rd置为1，否则置为0</li>
+<li><code>slti rd,rs1,imm</code>：若rs1的值小于立即数imm，rd置为1，否则置为0</li>
+</ul>
+<p>无符号数：</p>
+<ul>
+<li><code>sltu rd,rs1,rs2</code>：若rs1的值小于rs2的值，rd置为1，否则置为0</li>
+<li><code>sltiu rd,rs1,imm</code>：若rs1的值小于立即数imm，rd置为1，否则置为0</li>
+</ul>
+<h1 id="条件分支指令"><a href="#条件分支指令" class="headerlink" title="条件分支指令"></a>条件分支指令</h1><p>这部分用来实现控制流，即if语句，循环等。汇编中没有C等高级语言中的<code>&#123;&#125;</code>语句块，而是用<code>Lable:</code>的形式，下面会举例说明。</p>
+<ul>
+<li><code>beq rs1,rs2,lable</code>：若rs1的值等于rs2的值，程序跳转到lable处继续执行</li>
+<li><code>bne rs1,rs2,lable</code>：若rs1的值不等于rs2的值，程序跳转到lable处继续执行</li>
+<li><code>blt rs1,rs2,lable</code>：若rs1的值小于rs2的值，程序跳转到lable处继续执行</li>
+<li><code>bge rs1,rs2,lable</code>：若rs1的值大于等于rs2的值，程序跳转到lable处继续执行</li>
+</ul>
+<p><code>blt</code>和<code>bge</code>也有无符号版本<code>bltu</code>，<code>bgeu</code>。举例：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">int</span> i = <span class="hljs-number">0</span>;<br><span class="hljs-keyword">do</span>&#123;<br>    i++;<br>&#125;<span class="hljs-keyword">while</span>(i&lt;<span class="hljs-number">10</span>)<br></code></pre></td></tr></table></figure>
+<figure class="highlight llvm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs llvm"><span class="hljs-keyword">add</span> <span class="hljs-keyword">x</span><span class="hljs-number">2</span><span class="hljs-punctuation">,</span><span class="hljs-keyword">x</span><span class="hljs-number">0</span><span class="hljs-punctuation">,</span><span class="hljs-number">10</span>        # <span class="hljs-keyword">x</span><span class="hljs-number">2</span> <span class="hljs-operator">=</span> <span class="hljs-number">10</span><br><span class="hljs-keyword">add</span> <span class="hljs-keyword">x</span><span class="hljs-number">3</span><span class="hljs-punctuation">,</span><span class="hljs-keyword">x</span><span class="hljs-number">0</span><span class="hljs-punctuation">,</span><span class="hljs-number">0</span>         # i <span class="hljs-operator">=</span> <span class="hljs-number">0</span>存储在<span class="hljs-keyword">x</span><span class="hljs-number">3</span><br>Loop:<br>    <span class="hljs-keyword">add</span> <span class="hljs-keyword">x</span><span class="hljs-number">3</span><span class="hljs-punctuation">,</span><span class="hljs-keyword">x</span><span class="hljs-number">3</span><span class="hljs-punctuation">,</span><span class="hljs-number">1</span>     # i++<br>    blt <span class="hljs-keyword">x</span><span class="hljs-number">3</span><span class="hljs-punctuation">,</span><span class="hljs-keyword">x</span><span class="hljs-number">2</span><span class="hljs-punctuation">,</span>Loop  # i&lt;<span class="hljs-number">10</span>则继续循环<br></code></pre></td></tr></table></figure>
+<h1 id="无条件跳转指令"><a href="#无条件跳转指令" class="headerlink" title="无条件跳转指令"></a>无条件跳转指令</h1><ul>
+<li><code>j label</code>：程序直接跳转到lable处继续执行</li>
+<li><code>jal rd,label</code>：用于调用函数，把下一条指令的地址保存在rd中（通常用x1），然后跳转到label处继续执行</li>
+<li><code>jalr rd,offset(rs)</code>：可用于函数返回，把下一条指令的地址存到rd中，然后跳转到rs+offset地址处的指令继续执行。若rd=x0就是单纯的跳转（x0不能被修改）</li>
+</ul>
+<p>这里详细解释一下<code>jal</code>和<code>jalr</code>。在调用函数时，我们希望函数返回后，继续执行下一条指令，所以要把这下一条指令的地址存起来，再跳转到函数的代码块。函数执行完之后，根据先前存起来的指令地址，再跳回到调用处继续执行。</p>
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/OS/%E7%A8%8B%E5%BA%8F%E7%9A%84%E6%9C%BA%E5%99%A8%E7%BA%A7%E8%A1%A8%E7%A4%BA/" class="category-chain-item">程序的机器级表示</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>RISC-V的常见指令</div>
+      <div>http://example.com/2022/04/09/processInMachine2/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>CH3CHOHCH3</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2022年4月9日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/04/11/processInMachine3/" title="运行时栈与函数">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">运行时栈与函数</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/04/08/processInMachine1/" title="指令集与存储体系">
+                        <span class="hidden-mobile">指令集与存储体系</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  <article id="comments" lazyload>
+    
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-dark';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'CH3CHOHCH3/CH3CHOHCH3.github.io');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+  </article>
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <p>Email-ybc20020730@gmail.com</p>
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

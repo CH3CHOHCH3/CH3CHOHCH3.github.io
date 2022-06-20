@@ -1,0 +1,742 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="CH3CHOHCH3">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="本篇讲述可执行文件的生成，内容上以C语言为讲解对象，概括了汇编、链接、静态库等概念。            我想每个初学C语言编程的人都曾经思考过这些问题：  #include是如何发挥作用的 C语言的编译器是怎么写出来的 头文件和库文件说的是一种东西吗 ……  这些问题的解答并不能用三言两语描述清楚，因为在计算机中，最简单的功能也往往需要整个系统的参与。在此，我们简单介">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编译，静态链接，可执行文件的生成">
+<meta property="og:url" content="http://example.com/2021/11/11/compileLinkExecutableFile/index.html">
+<meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
+<meta property="og:description" content="本篇讲述可执行文件的生成，内容上以C语言为讲解对象，概括了汇编、链接、静态库等概念。            我想每个初学C语言编程的人都曾经思考过这些问题：  #include是如何发挥作用的 C语言的编译器是怎么写出来的 头文件和库文件说的是一种东西吗 ……  这些问题的解答并不能用三言两语描述清楚，因为在计算机中，最简单的功能也往往需要整个系统的参与。在此，我们简单介">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-11-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2022-03-21T10:24:05.000Z">
+<meta property="article:author" content="CH3CHOHCH3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>编译，静态链接，可执行文件的生成 - CH3CHOHCH3&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.1","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>CH3CHOHCH3&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archives-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-categories-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/bg/index.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="编译，静态链接，可执行文件的生成"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2021-11-11 00:00" pubdate>
+          2021年11月11日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          33 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">编译，静态链接，可执行文件的生成</h1>
+            
+            <div class="markdown-body">
+              
+              <div class="note note-light">
+            <p>本篇讲述可执行文件的生成，内容上以C语言为讲解对象，概括了汇编、链接、静态库等概念。</p>
+          </div>
+<p>我想每个初学C语言编程的人都曾经思考过这些问题：</p>
+<ul>
+<li><code>#include</code>是如何发挥作用的</li>
+<li>C语言的编译器是怎么写出来的</li>
+<li>头文件和库文件说的是一种东西吗</li>
+<li>……</li>
+</ul>
+<p>这些问题的解答并不能用三言两语描述清楚，因为在计算机中，最简单的功能也往往需要整个系统的参与。在此，我们简单介绍一下编译这项工作。</p>
+<h1 id="1-编译的本质"><a href="#1-编译的本质" class="headerlink" title="1.编译的本质"></a>1.编译的本质</h1><p>计算机软件能实现的功能很多，但归根结底，CPU的指令大致只有三种：</p>
+<ul>
+<li>把某个数据放到某个位置</li>
+<li>对某些数据进行某种运算</li>
+<li>根据条件取出下一条指令</li>
+</ul>
+<p>这其实对应着高级语言中的赋值、运算、流程控制。当然，CPU的指令相当复杂，但从本质上来看，基本都可以归为这三种。</p>
+<p>人们把每个指令用一个二进制串编码，CPU的门电路被设计为输入对应的二进制信号（指令），就产生相应的信号作为结果，这就形成了所谓指令集（Instruction Set Architecture，即ISA）。以某x86指令集的CPU为例，用指令集编程，会得到这样的程序：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs">01010101100010011110010110<br>00101101000101000011000000<br>00110100010100001000100010<br>01111011000101110111000011<br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>机器码并不等同于可执行文件。为了能够让操作系统装载并运行程序，可执行文件中还包括很多除代码之外的信息和数据。</p>
+</blockquote>
+<p>虽然可以实现功能，但用01写代码对人类来说有着诸多不足，人们希望用一些有意义的字符串来表示指令和参数，也就是汇编语言（Assembly language），人们通过汇编器（Assembler，即as）将汇编代码转化为机器码。于是上面的程序就变成了：</p>
+<figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs as">sum:<br>    pushl %ebp<br>    movl %esp,%ebp<br>    movl <span class="hljs-number">12</span>(%ebp),%eax<br>    addl <span class="hljs-number">8</span>(%ebp),%eax<br>    movl %ebp,%esp<br>    popl %ebp<br>    ret<br></code></pre></td></tr></table></figure>
+<p>即使没学过汇编，我们也能窥探出<code>movl %esp,%ebp</code>似乎是把某个地方的数据移动到另一个地方；而<code>addl 8(%ebp),%eax</code>似乎是把一个地方的数据加上另一个地方的数据等。</p>
+<p>然而，汇编的编程思路并没有脱离指令集，编写功能复杂的软件是十分困难的。也许在C中操作一个具有多个成员变量的类只需要一行代码，而汇编中则需要对上百个地址的数据进行变动；另一方面，不同CPU的指令集不同，汇编对平台的依赖性也很强。某些汇编中用到的寄存器地址，在另一个CPU中也许根本不存在。</p>
+<p>因此，人们需要高级语言（比如C）。C对汇编进行了高一层级的抽象，人们利用编译器将C语言编译为汇编，再由汇编器生成机器码。最终，上面的程序可以表示为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">int</span> <span class="hljs-title function_">sum</span><span class="hljs-params">(<span class="hljs-type">int</span> x, <span class="hljs-type">int</span> y)</span>&#123;<br>    <span class="hljs-type">int</span> t = x + y;<br>    <span class="hljs-keyword">return</span> t;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>事实上，人们平时所说的编译器更应被称作“编译器驱动程序”。完整的编译系统提供了语言预处理器、编译器、汇编器和链接器，用户调用编译器驱动程序，即可实现整套系统的运作。例如，在命令行中，通过<code>gcc -S hello.c</code>即可生成C代码对应的汇编代码；通过<code>gcc hello.c -o hello</code>可生产可执行文件<code>hello</code>。</p>
+<h1 id="2-静态库与链接"><a href="#2-静态库与链接" class="headerlink" title="2.静态库与链接"></a>2.静态库与链接</h1><p>在编程中，许多功能是频繁被人们所使用的，比如hello.c中的printf函数。在大型软件的开发中，有些功能会被多个组件需要，比如一个网站的多种业务都需要向数据库查询、修改数据。为了提高兼容性，减少重复开发的工作量，我们希望将一些常用、基础的功能封装起来。</p>
+<p>假如，我实现了这样一个函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// sum.c</span><br><span class="hljs-type">int</span> <span class="hljs-title function_">sum</span><span class="hljs-params">(<span class="hljs-type">int</span> x, <span class="hljs-type">int</span> y)</span>&#123;<br>    <span class="hljs-keyword">return</span> x + y;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>我需要考虑如何将sum函数复用到下面的代码中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// main.c</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">sum</span><span class="hljs-params">(<span class="hljs-type">int</span> x, <span class="hljs-type">int</span> y)</span>;<br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br>    <span class="hljs-type">int</span> x=<span class="hljs-number">1</span>, y=<span class="hljs-number">1</span>;<br>    <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;%d\n&quot;</span>, sum(x, y));<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>一个简单的方案是，将<code>sum.c</code>的实现复制到<code>main.c</code>中。在本例中，这当然是最简单高效的方案。然而，当需要的功能越来越多，越来越复杂时，这会导致代码极其臃肿，难以调试。并且，不断地粘贴冗长的代码是一件烦人的工作。人们最终采用的方式是，将<code>sum.c</code>和<code>main.c</code>别编译为二进制文件（称为可重定位目标文件，即<code>sum.o</code>和<code>main.o</code>），然后用一个程序（链接器）将两份目标文件合并成为一个可执行文件（当然，合并时还需要printf函数的模块），这个过程就叫做链接。</p>
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs gams"># 生成<span class="hljs-keyword">sum</span>.o可重定位目标模块<br><span class="hljs-symbol">$</span> gcc -c <span class="hljs-keyword">sum</span>.c<br># 将main.c编译为main.o，并将main.o和<span class="hljs-keyword">sum</span>.o与标准库链接产生可执行文件main<br><span class="hljs-symbol">$</span> gcc main.c <span class="hljs-keyword">sum</span>.o -o main<br><br># 上面两步可以简化为<br><span class="hljs-symbol">$</span> gcc main.c <span class="hljs-keyword">sum</span>.c -o main<br></code></pre></td></tr></table></figure>
+<p>现在，让我们考虑C如何向程序员提供标准函数（例如上面的printf）。</p>
+<p>一种方案是让编译器识别标准函数的调用，然后自动生成代码。Pascal就是采用了这种方式，然而这对标准函数众多的C而言并不合理：这将使编译器的开发难度显著增大，且对标准函数的修改将导致编译器版本的频繁变化。</p>
+<p>另一种方法是把所有的标准C函数放到同一个可重定位目标模块中，程序员在编译自己的代码时链接该模块。然而，对标准函数的修改将导致整个模块的重新编译；同时，这个巨大的模块将导致每个可执行文件中都包含一个所有标准函数的实现副本，这是对空间的巨大浪费。当然，我们可以将不同函数编译为不同的独立模块（如printf.o，scanf.o…），并由程序员在编译时手动加入需要的模块，然而这将导致编译指令冗长且易错。</p>
+<p>因此，静态库的概念被提出，以解决上述方法的缺点。人们将不同函数编译为独立的目标模块（.o)，然后封装成为一个单独的静态库文件（.a）。在编译时，人们指定需要链接到的静态库，链接器将只复制被程序引用的目标模块，以减少可执行文件的大小；同时，程序员输入的编译指令只需要包含较少的库文件（C编译器驱动程序会默认将libc.a传送给链接器）。</p>
+<blockquote>
+<p>在 Linux 系统中，静态库以一种称为存档（archive)的特殊文件格式存放在磁盘中。存档文件是一组连接起来的可重定位目标文件的集合，有一个头部用来描述每个成员目标文件的大小和位置。存档文件名由后缀.a 标识。我们可以利用ar工具从目标模块制作静态库，或更新替换其中的内容。</p>
+</blockquote>
+<p>我们也许注意到了这一点，在<code>sum.c</code>中定义的sum函数，在<code>main.c</code>中也被声明了一次，这个细节将引出头文件的概念。</p>
+<p>在每个可重定位目标模块中，都有一个符号表，它包含本模块定义和引用的符号的信息。所谓的符号，对应着我们在程序中声明的全局变量、函数（不含局部变量）；链接器需要符号表来整合不同模块，生成可执行文件。如果我们不在<code>main.c</code>中声明sum函数，编译器会给出警告而不是报错：implicit declaration of function，即函数隐式声明；然而，如果我们在<code>sum.c</code>中定义了全局变量<code>int a;</code>，那么在<code>main.c</code>中对a的操作就必须要先对其声明：<code>extern int a;</code>，以告知编译器a是一个外部变量（函数的声明不需要加<code>extern</code>，如本模块未定义某函数，编译器会默认到外部寻找其定义）。</p>
+<p>当程序员需要的标准函数越来越多时，对大量全局变量和函数的声明又成了新的负担。于是，人们通过头文件的形式，一次性将所有变量声明在同一个.h文件中，在编写代码时加入一句<code>#include &lt;xxx.h&gt;</code>，就完成了所有的声明工作，编译器将负责把xxx.h中的内容插入到我们的代码中（生成一份中间文件，以.i为后缀）。当然，头文件中并不只有声明，也包含宏等内容，我们暂且按下不表。</p>
+<h1 id="3-编译过程总览"><a href="#3-编译过程总览" class="headerlink" title="3.编译过程总览"></a>3.编译过程总览</h1><p>总的来看，对下面这份代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// hello.c</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br>    <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;hello world\n&quot;</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>编译系统进行了这些工作，以生成一份可执行程序：</p>
+<ol>
+<li>用<code>stdio.h</code>中的内容替换<code>#include &lt;stdio.h&gt;</code>生成中间文件<code>hello.i</code>。 </li>
+<li>编译器将<code>hello.i</code>编译为当前平台的汇编代码<code>hello.s</code>。</li>
+<li>汇编器将<code>hello.s</code>编译为机器码，并整合其他信息生成可重定位目标文件<code>hello.o</code>。</li>
+<li>链接器将<code>printf.o</code>，或是<code>libc.a</code>中的printf函数和<code>hello.o</code>链接生成和执行文件<code>hello</code>。</li>
+</ol>
+<p>这四步的指令分别为：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs stylus">gcc -E hello<span class="hljs-selector-class">.c</span> -o hello<span class="hljs-selector-class">.i</span><br>gcc -S hello<span class="hljs-selector-class">.i</span> -o hello<span class="hljs-selector-class">.s</span><br>gcc -c hello<span class="hljs-selector-class">.s</span> -o hello<span class="hljs-selector-class">.o</span><br>gcc hello<span class="hljs-selector-class">.o</span> -o hello<br></code></pre></td></tr></table></figure>
+<h1 id="4-其他"><a href="#4-其他" class="headerlink" title="4.其他"></a>4.其他</h1><p>今天，我们常用的C语言编译器有gcc，clang，llvm等。以gcc为例，我们也许会相当好奇，一个C语言的编译器究竟是如何用C语言开发出来的。事实上，这个先有鸡还是先有蛋的问题在细节上相当复杂，但整个开发的思路或许不难理解：先通过汇编实现简单的编译器，再通过这个编译器实现一个更复杂的编译器，以此迭代开发下去。</p>
+<p>需要注意的是，在linux系统中，文件的后缀名并没有任何在windows里那样的作用。linux奉行Unix中“一切皆文件”的哲学，后缀名仅仅是为了帮助人类理解该文件的形式。</p>
+<p>限于篇幅，这里没有讲到动态链接，也没有详细讲述可执行文件。同时，这些需要对进程、内存有初步的认识才能更好的理解。在下一篇文章中，我们将介绍进程等内容。</p>
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>编译，静态链接，可执行文件的生成</div>
+      <div>http://example.com/2021/11/11/compileLinkExecutableFile/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>CH3CHOHCH3</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2021年11月11日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/03/21/essay0/" title="关于此博客">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">关于此博客</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  <article id="comments" lazyload>
+    
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-dark';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'CH3CHOHCH3/CH3CHOHCH3.github.io');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+  </article>
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <p>Email-ybc20020730@gmail.com</p>
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
