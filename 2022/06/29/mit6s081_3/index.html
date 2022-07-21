@@ -24,7 +24,7 @@
 <meta property="og:description" content="实验背景lab3 是关于页表（page tables）的实验，旨在增进对虚拟内存的理解。 虚拟内存的核心思想是：以页为单位，将虚拟地址映射到物理地址（内存），每个进程都有一个页表，来记录自己地址空间的映射，以此实现不同进程间内存的隔离，和编译器对内存空间的统一管理。 系统最初没有启动虚拟内存。内核首先在物理地址上划分物理页（kinit(),kernel&#x2F;kalloc.c)，然后创建自身的页表，将内">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-06-29T13:00:00.000Z">
-<meta property="article:modified_time" content="2022-07-11T09:46:22.565Z">
+<meta property="article:modified_time" content="2022-07-21T12:31:31.826Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -261,7 +261,7 @@
 <p>虚拟内存的核心思想是：以页为单位，将虚拟地址映射到物理地址（内存），每个进程都有一个页表，来记录自己地址空间的映射，以此实现不同进程间内存的隔离，和编译器对内存空间的统一管理。</p>
 <p>系统最初没有启动虚拟内存。内核首先在物理地址上划分物理页（<code>kinit(),kernel/kalloc.c</code>)，然后创建自身的页表，将内核虚拟空间映射到物理内存（<code>kvmmake(),kernel/vm.c</code>），随后设置 satp 寄存器以启动地址映射（<code>kvminithart(),kernel/vm.c</code>）。</p>
 <p>映射被启动后，所有寻址都会被硬件（MMU）通过查找页表转换为物理地址（内核的寻址也是如此），再传给内存。</p>
-<p>有时内核需要直接获得某个虚拟地址对应的物理地址（如修改 PTE，查看进程的页访问情况等），xv6 通过 <code>walk()</code> 函数实现了这一功能。<code>walk()</code> 的本质是传入一个页表的地址，然后在这个页表中查找特定虚拟页的 PTE。页表中存储的都是物理地址，而 xv6 的 <code>walk()</code> 在寻址过程中使用的地址会被当做虚拟地址；为了正常实现 <code>walk()</code> 的功能，xv6 使用了恒等映射，即内核视角的虚拟地址和对应的物理地址相等，且内核管理所有物理页，因此内核可以正常获取所需的物理地址。</p>
+<p>有时内核需要直接获得某个虚拟地址对应的物理地址（如系统调用时从进程地址空间获取参数，查看进程的页访问情况等），xv6 通过 <code>walk()</code> 函数实现了这一功能。<code>walk()</code> 的本质是传入一个页表的地址，然后在这个页表中查找特定虚拟页的 PTE。页表中存储的都是物理地址，而 xv6 的 <code>walk()</code> 在寻址过程中使用的地址会被当做虚拟地址；为了正常实现 <code>walk()</code> 的功能，xv6 使用了恒等映射，即内核视角的虚拟地址和对应的物理地址相等，且内核管理所有物理页，因此内核可以正常获取所需的物理地址。</p>
 <p>实际中为了节省空间，页表采用三级存储，通过不为未使用页面分配 PTE 来节省大量空间。</p>
 <h1 id="实验题目"><a href="#实验题目" class="headerlink" title="实验题目"></a>实验题目</h1><h2 id="Speed-up-system-calls"><a href="#Speed-up-system-calls" class="headerlink" title="Speed up system calls"></a>Speed up system calls</h2><p>加速系统调用，即通过将进程的某些信息（本题中为进程id）存储在一个物理页中，然后将进程虚拟地址空间的一个只读页映射到该物理页，进程就能通过直接访问这个只读页获取自身 pid 而无需通过系统调用 <code>getpid()</code>。</p>
 <p>首先在 <code>kernel/proc.h</code> 定义的 <code>proc</code> 结构体中增加 <code>usyscall</code> 成员，方便后续的初始化和映射：</p>
