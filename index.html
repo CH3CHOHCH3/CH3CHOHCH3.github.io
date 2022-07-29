@@ -209,8 +209,69 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
+        <a href="/2022/07/28/mit6s081_5/" target="_self">
+          mit6.s081-lab Copy on-write
+        </a>
+      </h1>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2022/07/28/mit6s081_5/" target="_self">
+        <div>
+          实验背景在 traps 实验中我们简单介绍了 COW fork 的概念，本次实验我们来实现这个特性。 首先我们要明确实现 COW fork 机制具体需要做哪些工作。 在 fork() 系统调用中，uvmcopy() 负责为子进程创建新的物理页，并复制父进程的物理内存；因此我们需要修改 uvmcopy() 使它仅修改父子进程的页表项，不对物理内存进行操作。 在 usertrap() 函数中，我们需要
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2022-07-28 11:00" pubdate>
+              2022-07-28
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/OS/MIT6-S081%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" class="category-chain-item">MIT6.S081学习记录</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h1 class="index-header">
+        
         <a href="/2022/07/18/mit6s081_4/" target="_self">
-          mit6.s081-lab4
+          mit6.s081-lab Traps
         </a>
       </h1>
 
@@ -271,7 +332,7 @@
       <h1 class="index-header">
         
         <a href="/2022/06/29/mit6s081_3/" target="_self">
-          mit6.s081-lab3
+          mit6.s081-lab Page tables
         </a>
       </h1>
 
@@ -332,7 +393,7 @@
       <h1 class="index-header">
         
         <a href="/2022/06/19/mit6s081_2/" target="_self">
-          mit6.s081-lab2
+          mit6.s081-lab System calls
         </a>
       </h1>
 
@@ -454,7 +515,7 @@
       <h1 class="index-header">
         
         <a href="/2022/05/19/mit6s081_1/" target="_self">
-          mit6.s081-lab1
+          mit6.s081-lab Utilities
         </a>
       </h1>
 
@@ -708,67 +769,6 @@
             <i class="iconfont icon-date"></i>
             <time datetime="2022-04-09 15:00" pubdate>
               2022-04-09
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/OS/%E7%A8%8B%E5%BA%8F%E7%9A%84%E6%9C%BA%E5%99%A8%E7%BA%A7%E8%A1%A8%E7%A4%BA/" class="category-chain-item">程序的机器级表示</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2022/04/08/processInMachine1/" target="_self">
-          指令集与存储体系
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2022/04/08/processInMachine1/" target="_self">
-        <div>
-          这是“程序的机器级表示”系列的第一篇文章。本篇初步介绍指令集，汇编等概念，并帮助建立起寄存器-&gt;主存-&gt;外存的存储体系印象图。            指令集与汇编众所周知，高级语言编写的代码，要编译成汇编代码，再转换为机器代码才能被计算机执行。一个程序可以有很多炫酷的功能，一行高级语言的代码也可能有着复杂的含义，但一条机器指令只执行一个非常基本的操作。例如，将
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-04-08 23:00" pubdate>
-              2022-04-08
             </time>
           </div>
         
