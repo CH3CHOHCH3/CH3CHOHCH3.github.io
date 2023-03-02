@@ -24,7 +24,7 @@
 <meta property="og:description" content="汇总一下 2021 年度 MIT 6.S081 的 10 个实验。 代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2021 Lab1 Utilities通过系统调用实现五个功能。 sleep用 atoi 把字符串转为数字，直接调用 sleep 即可。 pingpong注意管道是半双工通信（所以本题需要两个管道），主要用于父子进程通信：  读进程要及时关闭管道写">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2023-02-22T13:58:00.000Z">
-<meta property="article:modified_time" content="2023-03-02T14:44:24.256Z">
+<meta property="article:modified_time" content="2023-03-02T14:49:36.996Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -517,6 +517,12 @@
   
 
 
+  
+  
+
+
+
+
 
 
 
@@ -747,6 +753,44 @@
 
 
   <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        MathJax = {
+          tex    : {
+            inlineMath: { '[+]': [['$', '$']] }
+          },
+          loader : {
+            load: ['ui/lazy']
+          },
+          options: {
+            renderActions: {
+              findScript    : [10, doc => {
+                document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+                  const display = !!node.type.match(/; *mode=display/);
+                  const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                  const text = document.createTextNode('');
+                  node.parentNode.replaceChild(text, node);
+                  math.start = { node: text, delim: '', n: 0 };
+                  math.end = { node: text, delim: '', n: 0 };
+                  doc.math.push(math);
+                });
+              }, '', false],
+              insertedScript: [200, () => {
+                document.querySelectorAll('mjx-container').forEach(node => {
+                  let target = node.parentNode;
+                  if (target.nodeName.toLowerCase() === 'li') {
+                    target.parentNode.classList.add('has-jax');
+                  }
+                });
+              }, '', false]
+            }
+          }
+        };
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.1/es5/tex-mml-chtml.js" ></script>
 
   <script  src="/js/local-search.js" ></script>
 
