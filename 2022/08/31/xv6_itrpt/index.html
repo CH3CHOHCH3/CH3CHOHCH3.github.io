@@ -1,0 +1,709 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="CH3CHOHCH3">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="在 xv6 启动时，shell 会向屏幕打印 $ 表示等待用户输入；当用户从键盘输入 ls 时，屏幕会显示这两个字符。在这些设备工作的过程中，xv6 内核究竟扮演了什么角色，又是如何实现的呢？ 设备驱动设备驱动是内核中的代码，用于管理特定硬件设备。驱动通常分为 top 和 bottom 两部分：top 通常是内核希望与设备沟通时调用的，而 bottom 则是设备向内核发起中断时的处理程序。 当内核">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xv6 驱动和中断——输入输出">
+<meta property="og:url" content="https://ch3chohch3.github.io/2022/08/31/xv6_itrpt/index.html">
+<meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
+<meta property="og:description" content="在 xv6 启动时，shell 会向屏幕打印 $ 表示等待用户输入；当用户从键盘输入 ls 时，屏幕会显示这两个字符。在这些设备工作的过程中，xv6 内核究竟扮演了什么角色，又是如何实现的呢？ 设备驱动设备驱动是内核中的代码，用于管理特定硬件设备。驱动通常分为 top 和 bottom 两部分：top 通常是内核希望与设备沟通时调用的，而 bottom 则是设备向内核发起中断时的处理程序。 当内核">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-08-31T11:36:00.000Z">
+<meta property="article:modified_time" content="2023-03-02T14:44:32.346Z">
+<meta property="article:author" content="CH3CHOHCH3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>xv6 驱动和中断——输入输出 - CH3CHOHCH3&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ch3chohch3.github.io","root":"/","version":"1.9.1","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>CH3CHOHCH3&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archives-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-categories-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/bg/index.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="xv6 驱动和中断——输入输出"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-08-31 19:36" pubdate>
+          2022年8月31日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          12k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          98 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">xv6 驱动和中断——输入输出</h1>
+            
+            <div class="markdown-body">
+              
+              <p>在 xv6 启动时，shell 会向屏幕打印 <code>$</code> 表示等待用户输入；当用户从键盘输入 <code>ls</code> 时，屏幕会显示这两个字符。在这些设备工作的过程中，xv6 内核究竟扮演了什么角色，又是如何实现的呢？</p>
+<h1 id="设备驱动"><a href="#设备驱动" class="headerlink" title="设备驱动"></a>设备驱动</h1><p>设备驱动是内核中的代码，用于管理特定硬件设备。驱动通常分为 top 和 bottom 两部分：top 通常是内核希望与设备沟通时调用的，而 bottom 则是设备向内核发起中断时的处理程序。</p>
+<p>当内核希望与设备进行交互时，<code>read</code> 和 <code>write</code> 等系统调用最终会执行到驱动程序的 top 部分，来让设备执行操作；当操作完成后，设备产生中断，驱动的 bottom 部分开始执行，唤醒等待该设备的进程，并让设备进行新的工作。</p>
+<h1 id="初始化设置"><a href="#初始化设置" class="headerlink" title="初始化设置"></a>初始化设置</h1><p>内核的 <code>main</code> 首先调用 <code>consoleinit</code> 对控制台进行初始化，该函数调用 <code>uartinit</code> 设置 UART 的传输波特率，重置其缓冲区，最后开启<strong>接收中断</strong>和<strong>发送完成中断</strong>。接下来，<code>consoleinit</code> 分别将 CONSOLE 设备的 <code>read</code> 和 <code>write</code> 函数设置为 <code>consoleread</code> 和 <code>consolewrite</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/console.c</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">consoleinit</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  initlock(&amp;cons.lock, <span class="hljs-string">&quot;cons&quot;</span>);<br><br>  uartinit();<br><br>  <span class="hljs-comment">// connect read and write system calls</span><br>  <span class="hljs-comment">// to consoleread and consolewrite.</span><br>  devsw[CONSOLE].read = consoleread;<br>  devsw[CONSOLE].write = consolewrite;<br>&#125;<br><span class="hljs-comment">// kernel/uart.c</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">uartinit</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-comment">// disable interrupts.</span><br>  WriteReg(IER, <span class="hljs-number">0x00</span>);<br><br>  <span class="hljs-comment">// special mode to set baud rate.</span><br>  WriteReg(LCR, LCR_BAUD_LATCH);<br><br>  <span class="hljs-comment">// LSB for baud rate of 38.4K.</span><br>  WriteReg(<span class="hljs-number">0</span>, <span class="hljs-number">0x03</span>);<br><br>  <span class="hljs-comment">// MSB for baud rate of 38.4K.</span><br>  WriteReg(<span class="hljs-number">1</span>, <span class="hljs-number">0x00</span>);<br><br>  <span class="hljs-comment">// leave set-baud mode,</span><br>  <span class="hljs-comment">// and set word length to 8 bits, no parity.</span><br>  WriteReg(LCR, LCR_EIGHT_BITS);<br><br>  <span class="hljs-comment">// reset and enable FIFOs.</span><br>  WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);<br><br>  <span class="hljs-comment">// enable transmit and receive interrupts.</span><br>  WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);<br><br>  initlock(&amp;uart_tx_lock, <span class="hljs-string">&quot;uart&quot;</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>之后，<code>main</code> 会调用 <code>plicinit</code> 和 <code>plicinithart</code>，告诉 PLIC 哪些设备中断被允许，并设置当前 CPU 对哪些中断感兴趣。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/plic.c</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">plicinit</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-comment">// set desired IRQ priorities non-zero (otherwise disabled).</span><br>  *(uint32*)(PLIC + UART0_IRQ*<span class="hljs-number">4</span>) = <span class="hljs-number">1</span>;<br>  *(uint32*)(PLIC + VIRTIO0_IRQ*<span class="hljs-number">4</span>) = <span class="hljs-number">1</span>;<br>&#125;<br><span class="hljs-type">void</span><br><span class="hljs-title function_">plicinithart</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-type">int</span> hart = cpuid();<br>  <br>  <span class="hljs-comment">// set enable bits for this hart&#x27;s S-mode</span><br>  <span class="hljs-comment">// for the uart and virtio disk.</span><br>  *(uint32*)PLIC_SENABLE(hart) = (<span class="hljs-number">1</span> &lt;&lt; UART0_IRQ) | (<span class="hljs-number">1</span> &lt;&lt; VIRTIO0_IRQ);<br><br>  <span class="hljs-comment">// set this hart&#x27;s S-mode priority threshold to 0.</span><br>  *(uint32*)PLIC_SPRIORITY(hart) = <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>后续用于运行进程的 <code>scheduler</code> 中，<code>intr_on</code> 会打开 CPU 的中断。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/riscv.h</span><br><span class="hljs-type">static</span> <span class="hljs-keyword">inline</span> <span class="hljs-type">void</span><br><span class="hljs-title function_">intr_on</span><span class="hljs-params">()</span><br>&#123;<br>  w_sstatus(r_sstatus() | SSTATUS_SIE);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="shell-的启动流程"><a href="#shell-的启动流程" class="headerlink" title="shell 的启动流程"></a>shell 的启动流程</h1><p>当初始化的工作完成后，内核启动第一个进程 init。可以看到 init 先是通过 <code>mknode</code> 创建设备 CONSOLE，接下来将文件描述符 0，1，2 都指向 CONSOLE；然后通过 <code>fork</code> 和 <code>exec</code> 运行 shell。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// user/init.c</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-type">int</span> pid, wpid;<br><br>  <span class="hljs-keyword">if</span>(open(<span class="hljs-string">&quot;console&quot;</span>, O_RDWR) &lt; <span class="hljs-number">0</span>)&#123;<br>    mknod(<span class="hljs-string">&quot;console&quot;</span>, CONSOLE, <span class="hljs-number">0</span>);<br>    open(<span class="hljs-string">&quot;console&quot;</span>, O_RDWR);<br>  &#125;<br>  dup(<span class="hljs-number">0</span>);  <span class="hljs-comment">// stdout</span><br>  dup(<span class="hljs-number">0</span>);  <span class="hljs-comment">// stderr</span><br><br>  <span class="hljs-keyword">for</span>(;;)&#123;<br>    <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;init: starting sh\n&quot;</span>);<br>    pid = fork();<br>    <span class="hljs-keyword">if</span>(pid &lt; <span class="hljs-number">0</span>)&#123;<br>      <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;init: fork failed\n&quot;</span>);<br>      <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>    &#125;<br>    <span class="hljs-keyword">if</span>(pid == <span class="hljs-number">0</span>)&#123;<br>      exec(<span class="hljs-string">&quot;sh&quot;</span>, argv);<br>      <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;init: exec sh failed\n&quot;</span>);<br>      <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>    &#125;<br><br>    <span class="hljs-keyword">for</span>(;;)&#123;<br>      <span class="hljs-comment">// this call to wait() returns if the shell exits,</span><br>      <span class="hljs-comment">// or if a parentless process exits.</span><br>      wpid = wait((<span class="hljs-type">int</span> *) <span class="hljs-number">0</span>);<br>      <span class="hljs-keyword">if</span>(wpid == pid)&#123;<br>        <span class="hljs-comment">// the shell exited; restart it.</span><br>        <span class="hljs-keyword">break</span>;<br>      &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(wpid &lt; <span class="hljs-number">0</span>)&#123;<br>        <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;init: wait returned an error\n&quot;</span>);<br>        <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>      &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-comment">// it was a parentless process; do nothing.</span><br>      &#125;<br>    &#125;<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>shell 先是检查文件描述符是否正确，然后就陷入 <code>getcmd</code> 的循环之中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// user/sh.c</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-type">static</span> <span class="hljs-type">char</span> buf[<span class="hljs-number">100</span>];<br>  <span class="hljs-type">int</span> fd;<br><br>  <span class="hljs-comment">// Ensure that three file descriptors are open.</span><br>  <span class="hljs-keyword">while</span>((fd = open(<span class="hljs-string">&quot;console&quot;</span>, O_RDWR)) &gt;= <span class="hljs-number">0</span>)&#123;<br>    <span class="hljs-keyword">if</span>(fd &gt;= <span class="hljs-number">3</span>)&#123;<br>      close(fd);<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br><br>  <span class="hljs-comment">// Read and run input commands.</span><br>  <span class="hljs-keyword">while</span>(getcmd(buf, <span class="hljs-keyword">sizeof</span>(buf)) &gt;= <span class="hljs-number">0</span>)&#123;<br>    <span class="hljs-keyword">if</span>(buf[<span class="hljs-number">0</span>] == <span class="hljs-string">&#x27;c&#x27;</span> &amp;&amp; buf[<span class="hljs-number">1</span>] == <span class="hljs-string">&#x27;d&#x27;</span> &amp;&amp; buf[<span class="hljs-number">2</span>] == <span class="hljs-string">&#x27; &#x27;</span>)&#123;<br>      <span class="hljs-comment">// Chdir must be called by the parent, not the child.</span><br>      buf[<span class="hljs-built_in">strlen</span>(buf)<span class="hljs-number">-1</span>] = <span class="hljs-number">0</span>;  <span class="hljs-comment">// chop \n</span><br>      <span class="hljs-keyword">if</span>(chdir(buf+<span class="hljs-number">3</span>) &lt; <span class="hljs-number">0</span>)<br>        <span class="hljs-built_in">fprintf</span>(<span class="hljs-number">2</span>, <span class="hljs-string">&quot;cannot cd %s\n&quot;</span>, buf+<span class="hljs-number">3</span>);<br>      <span class="hljs-keyword">continue</span>;<br>    &#125;<br>    <span class="hljs-keyword">if</span>(fork1() == <span class="hljs-number">0</span>)<br>      runcmd(parsecmd(buf));<br>    wait(<span class="hljs-number">0</span>);<br>  &#125;<br>  <span class="hljs-built_in">exit</span>(<span class="hljs-number">0</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>查看 <code>getcmd</code>，发现其先是调用 <code>write</code> 向 CONSOLE 中打印 <code>$</code>，然后通过 <code>gets</code> 获取命令。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// user/sh.c</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">getcmd</span><span class="hljs-params">(<span class="hljs-type">char</span> *buf, <span class="hljs-type">int</span> nbuf)</span><br>&#123;<br>  write(<span class="hljs-number">2</span>, <span class="hljs-string">&quot;$ &quot;</span>, <span class="hljs-number">2</span>);<br>  <span class="hljs-built_in">memset</span>(buf, <span class="hljs-number">0</span>, nbuf);<br>  gets(buf, nbuf);<br>  <span class="hljs-keyword">if</span>(buf[<span class="hljs-number">0</span>] == <span class="hljs-number">0</span>) <span class="hljs-comment">// EOF</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="shell-的输入输出"><a href="#shell-的输入输出" class="headerlink" title="shell 的输入输出"></a>shell 的输入输出</h1><h2 id="write"><a href="#write" class="headerlink" title="write"></a>write</h2><p>先来关注 <code>write</code>。我们知道 <code>write</code> 是系统调用，会执行到 <code>sys_write</code>，而 <code>sys_write</code> 则调用了 <code>filewrite</code>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/sysfile.c</span><br>uint64<br><span class="hljs-title function_">sys_write</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">file</span> *<span class="hljs-title">f</span>;</span><br>  <span class="hljs-type">int</span> n;<br>  uint64 p;<br>  <br>  argaddr(<span class="hljs-number">1</span>, &amp;p);<br>  argint(<span class="hljs-number">2</span>, &amp;n);<br>  <span class="hljs-keyword">if</span>(argfd(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, &amp;f) &lt; <span class="hljs-number">0</span>)<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br><br>  <span class="hljs-keyword">return</span> filewrite(f, p, n);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>在 <code>filewrite</code> 中，先是判断要输出到的文件类型，如果是设备文件则直接调用该设备的 <code>write</code>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/file.c</span><br><span class="hljs-comment">// Write to file f.</span><br><span class="hljs-comment">// addr is a user virtual address.</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">filewrite</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> file *f, uint64 addr, <span class="hljs-type">int</span> n)</span><br>&#123;<br>  <span class="hljs-type">int</span> r, ret = <span class="hljs-number">0</span>;<br><br>  <span class="hljs-keyword">if</span>(f-&gt;writable == <span class="hljs-number">0</span>)<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br><br>  <span class="hljs-keyword">if</span>(f-&gt;type == FD_PIPE)&#123;<br>    ret = pipewrite(f-&gt;pipe, addr, n);<br>  &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(f-&gt;type == FD_DEVICE)&#123;<br>    <span class="hljs-keyword">if</span>(f-&gt;major &lt; <span class="hljs-number">0</span> || f-&gt;major &gt;= NDEV || !devsw[f-&gt;major].write)<br>      <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br>    ret = devsw[f-&gt;major].write(<span class="hljs-number">1</span>, addr, n);<br>  &#125;<br>  <span class="hljs-comment">//...</span><br></code></pre></td></tr></table></figure>
+<p>因此，这里执行的就是我们在开头设置的 <code>consolewrite</code>，也即 CONSOLE 驱动的 top 部分。<code>consolewrite</code> 对每个字符，先是把数据从用户空间复制，然后调用 <code>uartputc</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">//kernel/console.c</span><br><span class="hljs-comment">// user write()s to the console go here.</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">consolewrite</span><span class="hljs-params">(<span class="hljs-type">int</span> user_src, uint64 src, <span class="hljs-type">int</span> n)</span><br>&#123;<br>  <span class="hljs-type">int</span> i;<br><br>  <span class="hljs-keyword">for</span>(i = <span class="hljs-number">0</span>; i &lt; n; i++)&#123;<br>    <span class="hljs-type">char</span> c;<br>    <span class="hljs-keyword">if</span>(either_copyin(&amp;c, user_src, src+i, <span class="hljs-number">1</span>) == <span class="hljs-number">-1</span>)<br>      <span class="hljs-keyword">break</span>;<br>    uartputc(c);<br>  &#125;<br>  <br>  <span class="hljs-keyword">return</span> i;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="read"><a href="#read" class="headerlink" title="read"></a>read</h2><p>再来看 <code>gets</code>，其通过系统调用 <code>read</code> 来读取一行字符：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// user/ulib.c</span><br><span class="hljs-type">char</span>*<br><span class="hljs-title function_">gets</span><span class="hljs-params">(<span class="hljs-type">char</span> *buf, <span class="hljs-type">int</span> max)</span><br>&#123;<br>  <span class="hljs-type">int</span> i, cc;<br>  <span class="hljs-type">char</span> c;<br><br>  <span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i+<span class="hljs-number">1</span> &lt; max; )&#123;<br>    cc = read(<span class="hljs-number">0</span>, &amp;c, <span class="hljs-number">1</span>);<br>    <span class="hljs-keyword">if</span>(cc &lt; <span class="hljs-number">1</span>)<br>      <span class="hljs-keyword">break</span>;<br>    buf[i++] = c;<br>    <span class="hljs-keyword">if</span>(c == <span class="hljs-string">&#x27;\n&#x27;</span> || c == <span class="hljs-string">&#x27;\r&#x27;</span>)<br>      <span class="hljs-keyword">break</span>;<br>  &#125;<br>  buf[i] = <span class="hljs-string">&#x27;\0&#x27;</span>;<br>  <span class="hljs-keyword">return</span> buf;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p><code>read</code> 和 <code>write</code> 的调用路径是类似的，通过 <code>sys_read</code>、<code>fileread</code> 最终到达 <code>consoleread</code>。<code>consoleread</code> 比 <code>consolewrite</code> 要复杂，它从缓冲区 <code>cons.buf</code> 中读取整行的输入到用户空间，如果无字符可读或读完缓冲区后该行仍未结束，则会进入 <code>sleep</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/console.c</span><br><span class="hljs-comment">// user read()s from the console go here.</span><br><span class="hljs-comment">// copy (up to) a whole input line to dst.</span><br><span class="hljs-comment">// user_dist indicates whether dst is a user</span><br><span class="hljs-comment">// or kernel address.</span><br><span class="hljs-comment">//</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">consoleread</span><span class="hljs-params">(<span class="hljs-type">int</span> user_dst, uint64 dst, <span class="hljs-type">int</span> n)</span><br>&#123;<br>  uint target;<br>  <span class="hljs-type">int</span> c;<br>  <span class="hljs-type">char</span> cbuf;<br><br>  target = n;<br>  acquire(&amp;cons.lock);<br>  <span class="hljs-keyword">while</span>(n &gt; <span class="hljs-number">0</span>)&#123;<br>    <span class="hljs-comment">// wait until interrupt handler has put some</span><br>    <span class="hljs-comment">// input into cons.buffer.</span><br>    <span class="hljs-keyword">while</span>(cons.r == cons.w)&#123;<br>      <span class="hljs-keyword">if</span>(killed(myproc()))&#123;<br>        release(&amp;cons.lock);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br>      &#125;<br>      sleep(&amp;cons.r, &amp;cons.lock);<br>    &#125;<br><br>    c = cons.buf[cons.r++ % INPUT_BUF_SIZE];<br><br>    <span class="hljs-keyword">if</span>(c == C(<span class="hljs-string">&#x27;D&#x27;</span>))&#123;  <span class="hljs-comment">// end-of-file</span><br>      <span class="hljs-keyword">if</span>(n &lt; target)&#123;<br>        <span class="hljs-comment">// Save ^D for next time, to make sure</span><br>        <span class="hljs-comment">// caller gets a 0-byte result.</span><br>        cons.r--;<br>      &#125;<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br><br>    <span class="hljs-comment">// copy the input byte to the user-space buffer.</span><br>    cbuf = c;<br>    <span class="hljs-keyword">if</span>(either_copyout(user_dst, dst, &amp;cbuf, <span class="hljs-number">1</span>) == <span class="hljs-number">-1</span>)<br>      <span class="hljs-keyword">break</span>;<br><br>    dst++;<br>    --n;<br><br>    <span class="hljs-keyword">if</span>(c == <span class="hljs-string">&#x27;\n&#x27;</span>)&#123;<br>      <span class="hljs-comment">// a whole line has arrived, return to</span><br>      <span class="hljs-comment">// the user-level read().</span><br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br>  release(&amp;cons.lock);<br><br>  <span class="hljs-keyword">return</span> target - n;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="UART-的工作原理"><a href="#UART-的工作原理" class="headerlink" title="UART 的工作原理"></a>UART 的工作原理</h1><h2 id="字符的输出"><a href="#字符的输出" class="headerlink" title="字符的输出"></a>字符的输出</h2><p>现在我们知道，shell 的输入输出最终通过内核中 CONSOLE 驱动的 top 部分进行，接下来就是最底层的 UART 部分。先来看 <code>uartputc</code>，这里使用了一个生产者-消费者模型的环形队列，并最终通过 <code>uartstart</code> 发送字符给 UART，如果队列已满则会陷入 <code>sleep</code> 等待。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/uart.c</span><br><span class="hljs-comment">// add a character to the output buffer and tell the</span><br><span class="hljs-comment">// UART to start sending if it isn&#x27;t already.</span><br><span class="hljs-comment">// blocks if the output buffer is full.</span><br><span class="hljs-comment">// because it may block, it can&#x27;t be called</span><br><span class="hljs-comment">// from interrupts; it&#x27;s only suitable for use</span><br><span class="hljs-comment">// by write().</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">uartputc</span><span class="hljs-params">(<span class="hljs-type">int</span> c)</span><br>&#123;<br>  acquire(&amp;uart_tx_lock);<br><br>  <span class="hljs-keyword">if</span>(panicked)&#123;<br>    <span class="hljs-keyword">for</span>(;;)<br>      ;<br>  &#125;<br>  <span class="hljs-keyword">while</span>(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE)&#123;<br>    <span class="hljs-comment">// buffer is full.</span><br>    <span class="hljs-comment">// wait for uartstart() to open up space in the buffer.</span><br>    sleep(&amp;uart_tx_r, &amp;uart_tx_lock);<br>  &#125;<br>  uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;<br>  uart_tx_w += <span class="hljs-number">1</span>;<br>  uartstart();<br>  release(&amp;uart_tx_lock);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>而 <code>uartstart</code> 会尝试向 UART 发送字符：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/uart.c</span><br><span class="hljs-comment">// if the UART is idle, and a character is waiting</span><br><span class="hljs-comment">// in the transmit buffer, send it.</span><br><span class="hljs-comment">// caller must hold uart_tx_lock.</span><br><span class="hljs-comment">// called from both the top- and bottom-half.</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">uartstart</span><span class="hljs-params">()</span><br>&#123;<br>  <span class="hljs-keyword">while</span>(<span class="hljs-number">1</span>)&#123;<br>    <span class="hljs-keyword">if</span>(uart_tx_w == uart_tx_r)&#123;<br>      <span class="hljs-comment">// transmit buffer is empty.</span><br>      <span class="hljs-keyword">return</span>;<br>    &#125;<br>    <br>    <span class="hljs-keyword">if</span>((ReadReg(LSR) &amp; LSR_TX_IDLE) == <span class="hljs-number">0</span>)&#123;<br>      <span class="hljs-comment">// the UART transmit holding register is full,</span><br>      <span class="hljs-comment">// so we cannot give it another byte.</span><br>      <span class="hljs-comment">// it will interrupt when it&#x27;s ready for a new byte.</span><br>      <span class="hljs-keyword">return</span>;<br>    &#125;<br>    <br>    <span class="hljs-type">int</span> c = uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE];<br>    uart_tx_r += <span class="hljs-number">1</span>;<br>    <br>    <span class="hljs-comment">// maybe uartputc() is waiting for space in the buffer.</span><br>    wakeup(&amp;uart_tx_r);<br>    <br>    WriteReg(THR, c);<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="字符的输入"><a href="#字符的输入" class="headerlink" title="字符的输入"></a>字符的输入</h2><p>当用户在键盘上输入字符时，UART 会产生一个中断，PLIC 接收到中断后会路由到特定的 CPU 核，如果该核心设置了 SIE 的 E 位（外部中断位），硬件执行以下操作：</p>
+<ol>
+<li>清除 SIE 寄存器的相应 bit 以关闭中断；</li>
+<li>设置 SEPC 为当前程序计数器；</li>
+<li>保存当前的 mode；</li>
+<li>将 mode 设置为 Supervisor mode；</li>
+<li>将 PC 设置为 STVEC 的值</li>
+</ol>
+<p>接下来发生的事和 trap 一致，即保存现场并进入 <code>trap.c</code> 的 <code>usertrap</code> 函数，然后判断是否为设备中断：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">//...</span><br><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>((which_dev = devintr()) != <span class="hljs-number">0</span>)&#123;<br>  <span class="hljs-comment">// ok</span><br>&#125;<br><span class="hljs-comment">//...</span><br></code></pre></td></tr></table></figure>
+<p>查看 <code>devintr</code> 可知，内核通过查看 scause 寄存器判断是否为外部中断，然后通过 <code>plic_claim</code> 获取中断；对于键盘输入的中断而言，最终会调用中断处理程序 <code>uartintr</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/trap.c</span><br><span class="hljs-comment">// check if it&#x27;s an external interrupt or software interrupt,</span><br><span class="hljs-comment">// and handle it.</span><br><span class="hljs-comment">// returns 2 if timer interrupt,</span><br><span class="hljs-comment">// 1 if other device,</span><br><span class="hljs-comment">// 0 if not recognized.</span><br><span class="hljs-type">int</span><br><span class="hljs-title function_">devintr</span><span class="hljs-params">()</span><br>&#123;<br>  uint64 scause = r_scause();<br><br>  <span class="hljs-keyword">if</span>((scause &amp; <span class="hljs-number">0x8000000000000000</span>L) &amp;&amp;<br>     (scause &amp; <span class="hljs-number">0xff</span>) == <span class="hljs-number">9</span>)&#123;<br>    <span class="hljs-comment">// this is a supervisor external interrupt, via PLIC.</span><br><br>    <span class="hljs-comment">// irq indicates which device interrupted.</span><br>    <span class="hljs-type">int</span> irq = plic_claim();<br><br>    <span class="hljs-keyword">if</span>(irq == UART0_IRQ)&#123;<br>      uartintr();<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(irq == VIRTIO0_IRQ)&#123;<br>      virtio_disk_intr();<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(irq)&#123;<br>      <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;unexpected interrupt irq=%d\n&quot;</span>, irq);<br>    &#125;<br><br>    <span class="hljs-comment">// the PLIC allows each device to raise at most one</span><br>    <span class="hljs-comment">// interrupt at a time; tell the PLIC the device is</span><br>    <span class="hljs-comment">// now allowed to interrupt again.</span><br>    <span class="hljs-keyword">if</span>(irq)<br>      plic_complete(irq);<br><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;<br>  &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(scause == <span class="hljs-number">0x8000000000000001</span>L)&#123;<br>    <span class="hljs-comment">// software interrupt from a machine-mode timer interrupt,</span><br>    <span class="hljs-comment">// forwarded by timervec in kernelvec.S.</span><br><br>    <span class="hljs-keyword">if</span>(cpuid() == <span class="hljs-number">0</span>)&#123;<br>      clockintr();<br>    &#125;<br>    <br>    <span class="hljs-comment">// acknowledge the software interrupt by clearing</span><br>    <span class="hljs-comment">// the SSIP bit in sip.</span><br>    w_sip(r_sip() &amp; ~<span class="hljs-number">2</span>);<br><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p><code>uartintr</code> 是 UART 驱动的 bottom 部分，用来处理键盘输入和收到字符造成的中断。这个函数先是通过 <code>uartgetc</code> 读取字符，然后通过 <code>consoleintr</code>（即 CONSOLE 的中断处理程序）把字符显示到 CONSOLE 中。这里并不是中断的嵌套，因为不涉及硬件状态的转换。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/uart.c</span><br><span class="hljs-comment">// handle a uart interrupt, raised because input has</span><br><span class="hljs-comment">// arrived, or the uart is ready for more output, or</span><br><span class="hljs-comment">// both. called from devintr().</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">uartintr</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>  <span class="hljs-comment">// read and process incoming characters.</span><br>  <span class="hljs-keyword">while</span>(<span class="hljs-number">1</span>)&#123;<br>    <span class="hljs-type">int</span> c = uartgetc();<br>    <span class="hljs-keyword">if</span>(c == <span class="hljs-number">-1</span>)<br>      <span class="hljs-keyword">break</span>;<br>    consoleintr(c);<br>  &#125;<br><br>  <span class="hljs-comment">// send buffered characters.</span><br>  acquire(&amp;uart_tx_lock);<br>  uartstart();<br>  release(&amp;uart_tx_lock);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>在 <code>consoleintr</code> 中，CONSOLE 会对特殊字符（如 BackSpace，Ctrl+P等）进行处理，然后通过 <code>consputc</code> 把字符显示到屏幕上；如果读入到换行符，那么还会唤醒等待读入的 <code>consoleread</code>，把内容返回给 shell。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/console.c</span><br><span class="hljs-comment">// the console input interrupt handler.</span><br><span class="hljs-comment">// uartintr() calls this for input character.</span><br><span class="hljs-comment">// do erase/kill processing, append to cons.buf,</span><br><span class="hljs-comment">// wake up consoleread() if a whole line has arrived.</span><br><span class="hljs-comment">//</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">consoleintr</span><span class="hljs-params">(<span class="hljs-type">int</span> c)</span><br>&#123;<br>  acquire(&amp;cons.lock);<br><br>  <span class="hljs-keyword">switch</span>(c)&#123;<br>  <span class="hljs-keyword">case</span> <span class="hljs-title function_">C</span><span class="hljs-params">(<span class="hljs-string">&#x27;P&#x27;</span>)</span>:  <span class="hljs-comment">// Print process list.</span><br>    <span class="hljs-title function_">procdump</span><span class="hljs-params">()</span>;<br>    <span class="hljs-keyword">break</span>;<br>  <span class="hljs-keyword">case</span> <span class="hljs-title function_">C</span><span class="hljs-params">(<span class="hljs-string">&#x27;U&#x27;</span>)</span>:  <span class="hljs-comment">// Kill line.</span><br>    <span class="hljs-title function_">while</span><span class="hljs-params">(cons.e != cons.w &amp;&amp;</span><br><span class="hljs-params">          cons.buf[(cons.e<span class="hljs-number">-1</span>) % INPUT_BUF_SIZE] != <span class="hljs-string">&#x27;\n&#x27;</span>)</span>&#123;<br>      cons.e--;<br>      consputc(BACKSPACE);<br>    &#125;<br>    <span class="hljs-keyword">break</span>;<br>  <span class="hljs-keyword">case</span> <span class="hljs-title function_">C</span><span class="hljs-params">(<span class="hljs-string">&#x27;H&#x27;</span>)</span>: <span class="hljs-comment">// Backspace</span><br>  <span class="hljs-keyword">case</span> &#x27;\x7f&#x27;: <span class="hljs-comment">// Delete key</span><br>    <span class="hljs-title function_">if</span><span class="hljs-params">(cons.e != cons.w)</span>&#123;<br>      cons.e--;<br>      consputc(BACKSPACE);<br>    &#125;<br>    <span class="hljs-keyword">break</span>;<br>  <span class="hljs-keyword">default</span>:<br>    <span class="hljs-keyword">if</span>(c != <span class="hljs-number">0</span> &amp;&amp; cons.e-cons.r &lt; INPUT_BUF_SIZE)&#123;<br>      c = (c == <span class="hljs-string">&#x27;\r&#x27;</span>) ? <span class="hljs-string">&#x27;\n&#x27;</span> : c;<br><br>      <span class="hljs-comment">// echo back to the user.</span><br>      consputc(c);<br><br>      <span class="hljs-comment">// store for consumption by consoleread().</span><br>      cons.buf[cons.e++ % INPUT_BUF_SIZE] = c;<br><br>      <span class="hljs-keyword">if</span>(c == <span class="hljs-string">&#x27;\n&#x27;</span> || c == C(<span class="hljs-string">&#x27;D&#x27;</span>) || cons.e-cons.r == INPUT_BUF_SIZE)&#123;<br>        <span class="hljs-comment">// wake up consoleread() if a whole line (or end-of-file)</span><br>        <span class="hljs-comment">// has arrived.</span><br>        cons.w = cons.e;<br>        wakeup(&amp;cons.r);<br>      &#125;<br>    &#125;<br>    <span class="hljs-keyword">break</span>;<br>  &#125;<br>  <br>  release(&amp;cons.lock);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>那么拼图的最后一块就是 <code>consputc</code> 了，这个函数通过 <code>uartputc_sync</code> 来向屏幕输出字符，和 <code>consolewrite</code> 所使用的 <code>uartputc</code> 有所不同，同步版的 <code>uartputc_sync</code> 会一直自旋直到能够发送字符为止，而异步版的 <code>uartputc</code> 调用了 <code>uartstart</code>，在发现不能发送字符时会直接返回，后续能够继续发送字符时 UART 发出中断，<code>uartintr</code> 会重新调用 <code>uartstart</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">// kernel/console.c</span><br><span class="hljs-comment">// send one character to the uart.</span><br><span class="hljs-comment">// called by printf(), and to echo input characters,</span><br><span class="hljs-comment">// but not from write().</span><br><span class="hljs-comment">//</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">consputc</span><span class="hljs-params">(<span class="hljs-type">int</span> c)</span><br>&#123;<br>  <span class="hljs-keyword">if</span>(c == BACKSPACE)&#123;<br>    <span class="hljs-comment">// if the user typed backspace, overwrite with a space.</span><br>    uartputc_sync(<span class="hljs-string">&#x27;\b&#x27;</span>); uartputc_sync(<span class="hljs-string">&#x27; &#x27;</span>); uartputc_sync(<span class="hljs-string">&#x27;\b&#x27;</span>);<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    uartputc_sync(c);<br>  &#125;<br>&#125;<br><br><span class="hljs-comment">// kernel/uart.c</span><br><span class="hljs-comment">// alternate version of uartputc() that doesn&#x27;t </span><br><span class="hljs-comment">// use interrupts, for use by kernel printf() and</span><br><span class="hljs-comment">// to echo characters. it spins waiting for the uart&#x27;s</span><br><span class="hljs-comment">// output register to be empty.</span><br><span class="hljs-type">void</span><br><span class="hljs-title function_">uartputc_sync</span><span class="hljs-params">(<span class="hljs-type">int</span> c)</span><br>&#123;<br>  push_off();<br><br>  <span class="hljs-keyword">if</span>(panicked)&#123;<br>    <span class="hljs-keyword">for</span>(;;)<br>      ;<br>  &#125;<br><br>  <span class="hljs-comment">// wait for Transmit Holding Empty to be set in LSR.</span><br>  <span class="hljs-keyword">while</span>((ReadReg(LSR) &amp; LSR_TX_IDLE) == <span class="hljs-number">0</span>)<br>    ;<br>  WriteReg(THR, c);<br><br>  pop_off();<br>&#125;<br></code></pre></td></tr></table></figure>
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>xv6 驱动和中断——输入输出</div>
+      <div>https://ch3chohch3.github.io/2022/08/31/xv6_itrpt/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>CH3CHOHCH3</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2022年8月31日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/10/20/rsa/" title="RSA算法介绍">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">RSA算法介绍</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/06/10/problem1/" title="2021年ICPC国际大学生程序设计竞赛-C">
+                        <span class="hidden-mobile">2021年ICPC国际大学生程序设计竞赛-C</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <p>Email-ybc20020730@gmail.com</p>
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

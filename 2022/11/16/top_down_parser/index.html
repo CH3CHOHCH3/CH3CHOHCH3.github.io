@@ -1,0 +1,756 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="CH3CHOHCH3">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="自顶向下分析试图从初始符号开始，给出目标句子的一个推导。 递归下降分析法递归下降分析的实现递归下降分析法从直观上是很好理解的，以如下文法为例：  $E\rightarrow T|T+E$ $T\rightarrow int|int\ast T|(E)$  定义全局指针 next 指向下一个待读入的 token，以及函数 term 来判断该 token 是否为指定类型终结符：123bool term">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自顶向下的语法分析">
+<meta property="og:url" content="https://ch3chohch3.github.io/2022/11/16/top_down_parser/index.html">
+<meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
+<meta property="og:description" content="自顶向下分析试图从初始符号开始，给出目标句子的一个推导。 递归下降分析法递归下降分析的实现递归下降分析法从直观上是很好理解的，以如下文法为例：  $E\rightarrow T|T+E$ $T\rightarrow int|int\ast T|(E)$  定义全局指针 next 指向下一个待读入的 token，以及函数 term 来判断该 token 是否为指定类型终结符：123bool term">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-11-16T14:40:00.000Z">
+<meta property="article:modified_time" content="2022-11-16T14:46:52.000Z">
+<meta property="article:author" content="CH3CHOHCH3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>自顶向下的语法分析 - CH3CHOHCH3&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ch3chohch3.github.io","root":"/","version":"1.9.1","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>CH3CHOHCH3&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archives-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-categories-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/bg/index.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="自顶向下的语法分析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-11-16 22:40" pubdate>
+          2022年11月16日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          19 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">自顶向下的语法分析</h1>
+            
+            <div class="markdown-body">
+              
+              <p>自顶向下分析试图从初始符号开始，给出目标句子的一个推导。</p>
+<h1 id="递归下降分析法"><a href="#递归下降分析法" class="headerlink" title="递归下降分析法"></a>递归下降分析法</h1><h2 id="递归下降分析的实现"><a href="#递归下降分析的实现" class="headerlink" title="递归下降分析的实现"></a>递归下降分析的实现</h2><p>递归下降分析法从直观上是很好理解的，以如下文法为例：</p>
+<ul>
+<li>$E\rightarrow T|T+E$</li>
+<li>$T\rightarrow int|int\ast T|(E)$</li>
+</ul>
+<p>定义全局指针 <code>next</code> 指向下一个待读入的 token，以及函数 <code>term</code> 来判断该 token 是否为指定类型终结符：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">bool</span> <span class="hljs-title function_">term</span><span class="hljs-params">(Token tok)</span>&#123;<br>    <span class="hljs-keyword">return</span> *next++ == tok;<br>&#125;<br></code></pre></td></tr></table></figure><br>然后根据每个产生式，定义一系列相互递归调用的函数来判断目标句子是否符合文法：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">bool</span> <span class="hljs-title function_">E1</span><span class="hljs-params">()</span>&#123;<span class="hljs-keyword">return</span> T();&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">E2</span><span class="hljs-params">()</span>&#123;<span class="hljs-keyword">return</span> T()&amp;&amp;term(PLUS)&amp;&amp;E();&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">E</span><span class="hljs-params">()</span>&#123;<br>    Token *save = next;<br>    <span class="hljs-keyword">return</span> (next = save, E1())<br>        || (next = save, E2());<br>&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">T1</span><span class="hljs-params">()</span>&#123;<span class="hljs-keyword">return</span> term(INT);&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">T2</span><span class="hljs-params">()</span>&#123;<span class="hljs-keyword">return</span> term(INT)&amp;&amp;term(TIMES)&amp;&amp;T();&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">T3</span><span class="hljs-params">()</span>&#123;<span class="hljs-keyword">return</span> term(OPEN)&amp;&amp;E()&amp;&amp;term(CLOSE);&#125;<br><span class="hljs-type">bool</span> <span class="hljs-title function_">T</span><span class="hljs-params">()</span>&#123;<br>    Token *save = next;<br>    <span class="hljs-keyword">return</span> (next = save, T1())<br>        || (next = save, T2())<br>        || (next = save, T3());<br>&#125;<br></code></pre></td></tr></table></figure><br>初始化 <code>next</code> 指针后，调用 <code>E</code> 即可判断目标句子是否符合文法。</p>
+<h2 id="递归下降分析的局限性"><a href="#递归下降分析的局限性" class="headerlink" title="递归下降分析的局限性"></a>递归下降分析的局限性</h2><p>上面展示的递归下降分析法非常便于手写实现，但是却不具有通用性，能够识别的语法也是有限的，下面介绍其几个主要的局限性。</p>
+<h3 id="二义性"><a href="#二义性" class="headerlink" title="二义性"></a>二义性</h3><p>用上面的程序分析句子 int*int 无法成功，这是因为 int 可以同时作为产生式 $T\rightarrow int$和$T\rightarrow int\ast T$的前缀，但只有后者是正确的，上述程序无法处理这种二义性。</p>
+<p>这个问题可以通过增加<strong>回溯</strong>解决，而不增加代码编写难度的做法则是<strong>提取左因子</strong>，即将一个非终结符具有相同前缀的多个产生式进行重写。对于本例，可以将</p>
+<ul>
+<li>$T\rightarrow int|int\ast T|(E)$</li>
+</ul>
+<p>改写为</p>
+<ul>
+<li>$T\rightarrow intA|(E)$</li>
+<li>$A\rightarrow\ast T|\varepsilon$</li>
+</ul>
+<h3 id="左递归"><a href="#左递归" class="headerlink" title="左递归"></a>左递归</h3><p>考虑产生式</p>
+<ul>
+<li>$S\rightarrow Sa|b$</li>
+</ul>
+<p>其对应的分析函数为：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">bool</span> <span class="hljs-title function_">S</span><span class="hljs-params">()</span>&#123;<br>    Token *save = next;<br>    <span class="hljs-keyword">return</span> (next = save, S()&amp;&amp;term(a))<br>        || (next = save, term(b));<br>&#125;<br></code></pre></td></tr></table></figure><br>显然这个函数会陷入无穷的递归调用而无法返回。上述现象称为<strong>直接左递归</strong>，若通过中间变量产生左递归则成为间接左递归。想要让递归下降分析法正确工作，就需要通过引入中间变量来消除左递归。</p>
+<p>对于上述文法，可以将其改写为</p>
+<ul>
+<li>$S\rightarrow bA$</li>
+<li>$A\rightarrow aA|\varepsilon$</li>
+</ul>
+<h1 id="预测分析：LL分析法"><a href="#预测分析：LL分析法" class="headerlink" title="预测分析：LL分析法"></a>预测分析：LL分析法</h1><p>递归下降分析法无法避免选择了错误的产生式后进行的大量回溯。如果能够根据后续字符选择唯一的产生式，就能够提高解析的效率。LL分析法就是这样一种预测型的自顶向下解析法：LL(k)的含义是从左向右、最左派生、根据后续的 k 个 token 来预测产生式。</p>
+<p>具体来说，LL分析法用一个栈来存储推导过程中产生的终结符和非终结符，同时利用一张预测分析表指出在已知当前栈顶符号和下一个读入 token 的情况下应当如何对该符号进行推导。</p>
+<h2 id="First、Follow集"><a href="#First、Follow集" class="headerlink" title="First、Follow集"></a>First、Follow集</h2><p>为了能够进行产生式的预测，需要考察文法中非终结符和终结符之间的关系。为此引入了$First$和$Follow$集的概念。对于非终结符$A$而言：</p>
+<ul>
+<li><p>$First(A)$指$A$能派生出的所有句子的第一个终结符的集合；</p>
+</li>
+<li><p>$Follow(A)$指该文法派生过程中所有可能出现在$A$后的第一个终结符的集合。</p>
+</li>
+</ul>
+<p>注意，$\varepsilon\in First(A)$的条件较为特殊，是$A$能推导出空串。</p>
+<h2 id="LL-1-分析表"><a href="#LL-1-分析表" class="headerlink" title="LL(1) 分析表"></a>LL(1) 分析表</h2><p>藉由$First$和$Follow$集的概念，我们可以构造 LL(1) 分析表。</p>
+<p>对每个产生式 $A\rightarrow\alpha$ 进行如下操作：</p>
+<ol>
+<li>对所有 $t\in First(\alpha),T[A][t]=\alpha$</li>
+<li>如果 $\varepsilon\in Fisrt(\alpha)$，对所有 $t\in Follow(A),T[A][t]=\alpha$</li>
+</ol>
+<p>若某个表项有多个可用产生式，那么该文法不是 LL(1) 文法；若某个表项无可用产生式，说明 LL 分析在该状态遇到了错误，识别失败。</p>
+<h2 id="分析流程"><a href="#分析流程" class="headerlink" title="分析流程"></a>分析流程</h2><ol>
+<li>将#放入符号栈；</li>
+<li>将文法初始符号$S$放入符号栈；</li>
+<li>从缓冲区读入读指针指向的 token $t$;</li>
+<li>若从符号栈栈顶取出符号$A$：<ul>
+<li>若$A$是终结符，且等于$t$，则$A$出栈，缓冲区读指针后移；</li>
+<li>若$A$是非终结符，且$T[A][t]=\alpha$，则$A$出栈，将$\alpha$中符号<strong>倒序入栈</strong>，缓冲区读指针不动；</li>
+<li>否则进行错误处理；</li>
+</ul>
+</li>
+<li>若符号栈为空则已识别完成，否则回到 3。</li>
+</ol>
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86/" class="category-chain-item">编译原理</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>自顶向下的语法分析</div>
+      <div>https://ch3chohch3.github.io/2022/11/16/top_down_parser/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>CH3CHOHCH3</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2022年11月16日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/02/22/mit6s081_2021_labs/" title="MIT 6.S081 2021 xv6 labs">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">MIT 6.S081 2021 xv6 labs</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/15/elgamal/" title="ELGamal算法及其原根的求取">
+                        <span class="hidden-mobile">ELGamal算法及其原根的求取</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <p>Email-ybc20020730@gmail.com</p>
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        MathJax = {
+          tex    : {
+            inlineMath: { '[+]': [['$', '$']] }
+          },
+          loader : {
+            load: ['ui/lazy']
+          },
+          options: {
+            renderActions: {
+              findScript    : [10, doc => {
+                document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+                  const display = !!node.type.match(/; *mode=display/);
+                  const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                  const text = document.createTextNode('');
+                  node.parentNode.replaceChild(text, node);
+                  math.start = { node: text, delim: '', n: 0 };
+                  math.end = { node: text, delim: '', n: 0 };
+                  doc.math.push(math);
+                });
+              }, '', false],
+              insertedScript: [200, () => {
+                document.querySelectorAll('mjx-container').forEach(node => {
+                  let target = node.parentNode;
+                  if (target.nodeName.toLowerCase() === 'li') {
+                    target.parentNode.classList.add('has-jax');
+                  }
+                });
+              }, '', false]
+            }
+          }
+        };
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.1/es5/tex-mml-chtml.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

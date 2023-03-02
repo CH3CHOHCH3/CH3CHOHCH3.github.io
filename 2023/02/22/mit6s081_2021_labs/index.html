@@ -1,0 +1,768 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="CH3CHOHCH3">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="汇总一下 2021 年度 MIT 6.S081 的 10 个实验。 代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2021 Lab1 Utilities通过系统调用实现五个功能。 sleep用 atoi 把字符串转为数字，直接调用 sleep 即可。 pingpong注意管道是半双工通信（所以本题需要两个管道），主要用于父子进程通信：  读进程要及时关闭管道写">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MIT 6.S081 2021 xv6 labs">
+<meta property="og:url" content="https://ch3chohch3.github.io/2023/02/22/mit6s081_2021_labs/index.html">
+<meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
+<meta property="og:description" content="汇总一下 2021 年度 MIT 6.S081 的 10 个实验。 代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2021 Lab1 Utilities通过系统调用实现五个功能。 sleep用 atoi 把字符串转为数字，直接调用 sleep 即可。 pingpong注意管道是半双工通信（所以本题需要两个管道），主要用于父子进程通信：  读进程要及时关闭管道写">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-02-22T13:58:00.000Z">
+<meta property="article:modified_time" content="2023-03-02T14:44:24.256Z">
+<meta property="article:author" content="CH3CHOHCH3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>MIT 6.S081 2021 xv6 labs - CH3CHOHCH3&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ch3chohch3.github.io","root":"/","version":"1.9.1","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+
+  
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>CH3CHOHCH3&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archives-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-categories-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/bg/index.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="MIT 6.S081 2021 xv6 labs"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-02-22 21:58" pubdate>
+          2023年2月22日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          7.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          65 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">MIT 6.S081 2021 xv6 labs</h1>
+            
+            <div class="markdown-body">
+              
+              <p>汇总一下 2021 年度 MIT 6.S081 的 10 个实验。</p>
+<p>代码：<a target="_blank" rel="noopener" href="https://github.com/CH3CHOHCH3/xv6-labs-2021">https://github.com/CH3CHOHCH3/xv6-labs-2021</a></p>
+<h1 id="Lab1-Utilities"><a href="#Lab1-Utilities" class="headerlink" title="Lab1 Utilities"></a>Lab1 Utilities</h1><p>通过系统调用实现五个功能。</p>
+<h2 id="sleep"><a href="#sleep" class="headerlink" title="sleep"></a>sleep</h2><p>用 <code>atoi</code> 把字符串转为数字，直接调用 <code>sleep</code> 即可。</p>
+<h2 id="pingpong"><a href="#pingpong" class="headerlink" title="pingpong"></a>pingpong</h2><p>注意管道是半双工通信（所以本题需要两个管道），主要用于父子进程通信：</p>
+<ul>
+<li>读进程要及时关闭管道写端，防止所有写进程退出后 <code>read</code> 不能立即返回 0;</li>
+<li>写进程要及时关闭管道读端，防止所有读进程退出后 <code>write</code> 不能触发 SIGPIPE 信号;</li>
+</ul>
+<h2 id="primes"><a href="#primes" class="headerlink" title="primes"></a>primes</h2><p>本题有两个关键点。</p>
+<ol>
+<li>并发：从父进程读到数字应立即筛选并写给子进程，读完所有数字再写是错的；</li>
+<li>避免递归：<code>fork</code> 会复制父进程的栈空间，递归的写法会让栈越来越小。</li>
+</ol>
+<p>综上，可以使用 <code>goto</code> 直接让子进程跳转到 <code>fork</code> 之前，在这个框架下进行素数筛。</p>
+<h2 id="find"><a href="#find" class="headerlink" title="find"></a>find</h2><p>参考 <code>user/ls.c</code> 中递归目录的写法即可，注意不要递归搜索 <code>.</code> 和 <code>..</code>。</p>
+<h2 id="xargs"><a href="#xargs" class="headerlink" title="xargs"></a>xargs</h2><p>题意是读标准输入文件，每读完一行把该行内容作为附加参数，通过 <code>fork</code> + <code>exec</code> 传给目标程序，执行完之后读下一行。</p>
+<p>例如 <code>echo &quot;1\n2&quot; | xargs echo hello</code> 等价于顺序执行 <code>echo hello 1</code> 和 <code>echo hello 2</code>。</p>
+<h1 id="Lab2-System-Calls"><a href="#Lab2-System-Calls" class="headerlink" title="Lab2 System Calls"></a>Lab2 System Calls</h1><p>给 xv6 增加两个系统调用。需要知道 xv6 系统调用的用户侧接口是 <code>user/usys.pl</code> 实现的汇编代码（核心指令是 <code>ecall</code>），内核的处理是通过 <code>kernel/trap.c</code> 中调用的 <code>syscall</code> 函数（位于 <code>kernel/syscall.c</code>）, 而该函数通过 <code>a7</code> 寄存器（值位于 <code>trapframe</code>）获取系统调用号，并在一个函数指针数组中找到对应的处理函数。</p>
+<h2 id="tracing"><a href="#tracing" class="headerlink" title="tracing"></a>tracing</h2><p>这个系统调用把一个 <code>int</code> 型 32 位掩码作为参数，要求内核输出该进程及其子进程使用的系统调用号对应掩码位为 1 的所有系统调用名。</p>
+<p>可以在 <code>proc</code> 结构体中定义一个默认为 0 的 mask 成员，<code>trace</code> 系统调用的功能就是设定 <code>proc-&gt;mask</code>，在 <code>syscall</code> 函数中顺手检查掩码并输出系统调用的名字即可（记得在 <code>fork</code> 中传递 mask 的值）。</p>
+<h2 id="sysinfo"><a href="#sysinfo" class="headerlink" title="sysinfo"></a>sysinfo</h2><p>这个系统调用以一个 <code>sysinfo</code> 指针为参数，希望内核将当前的空闲内存（以 byte 为单位）和所有处于非 UNUSED 状态的进程数写到目标地址。本题有三个关键点：</p>
+<ol>
+<li><strong>获取空闲内存</strong>：可以遍历 <code>kernel/kalloc.c</code> 中记录所有空闲页物理地址的链表 <code>freelist</code>，乘以 PGSIZE 即为答案；</li>
+<li><strong>获取非 UNUSED 状态进程数</strong>：可以遍历 <code>kernel/proc.c</code> 中的 <code>proc</code> 数组，通过 <code>p-&gt;state</code> 判断进程状态并计数；</li>
+<li><strong>获取参数并写回答案</strong>：获取参数通过 <code>argaddr</code> 实现（本质上还是读寄存器 <code>a0</code> - <code>a5</code>），写回答案通过 <code>copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)</code> 实现，其作用为将 <code>src</code> 处的 <code>len</code> 字节内容复制到 <code>pagetable</code> 根页表下的 <code>dstva</code> 处。</li>
+</ol>
+<h1 id="Lab3-Page-Tables"><a href="#Lab3-Page-Tables" class="headerlink" title="Lab3 Page Tables"></a>Lab3 Page Tables</h1><p>2021 的页表实验比 2020 简单一些。</p>
+<h2 id="Speed-up-system-calls"><a href="#Speed-up-system-calls" class="headerlink" title="Speed up system calls"></a>Speed up system calls</h2><p>题目要求把进程 <code>pid</code> 写入一个单独的物理页，然后把进程地址空间的一个只读页映射到该物理页，进程就可以不通过系统调用直接读取进程号。</p>
+<p>这个题已经在 <code>kernel/memlayout.h</code> 中定义好了 <code>USYSCALL</code> 这个虚拟地址，我们可以直接参考 <code>kernel/proc.c</code> 中对 <code>trampframe</code> 页的处理：</p>
+<ol>
+<li>在 <code>allocproc</code> 中用 <code>kalloc</code> 分配物理页，在 <code>proc_pagetable</code> 中完成映射；</li>
+<li>在 <code>freeproc</code> 中用 <code>kfree</code> 释放物理页，在 <code>proc_freepagetable</code> 中清空页表；</li>
+</ol>
+<p>这样进程就可以直接访问 <code>USYSCALL</code> 这个虚拟地址来读取进程号了。</p>
+<h2 id="Print-a-page-table"><a href="#Print-a-page-table" class="headerlink" title="Print a page table"></a>Print a page table</h2><p>打印 <code>init</code> 进程的页表，直接参考 <code>freewalk</code> 怎么递归处理三级页表即可。</p>
+<p>注意 <code>freewalk</code> 的功能是清空页表自身占用的物理页，它要求叶页表项的映射必须事先已经被 <code>uvmunmap</code> 清空；而 <code>vmprint</code> 不需要考虑这个问题，遇到非 0 的叶页表项直接输出即可。</p>
+<h2 id="Detecting-which-pages-have-been-accessed"><a href="#Detecting-which-pages-have-been-accessed" class="headerlink" title="Detecting which pages have been accessed"></a>Detecting which pages have been accessed</h2><p>实现系统调用 <code>pgaccess(void *base, int len, void *mask)</code>，用于统计从起始虚拟地址起若干连续页面的访问情况。参数含义：</p>
+<ol>
+<li><code>base</code>：表示检测起点的虚拟地址；</li>
+<li><code>len</code>：表示检测页的数目；</li>
+<li><code>mask</code>：表示以掩码形式返回结果的地址；</li>
+</ol>
+<p>这个题实现功能并不难，直接遍历所有页，用 <code>walk</code> 找到每个虚拟地址的 pte 然后看 PTE_A 即可（记得看完要置0）。一个需要思考的地方在于，不能预先知道统计多少页；所以我直接用一个 <code>char</code> 存答案，每统计 8 个页面写回一个 byte，熟悉指针的话并不难实现。</p>
+<h1 id="Lab4-Traps"><a href="#Lab4-Traps" class="headerlink" title="Lab4 Traps"></a>Lab4 Traps</h1><p>异常控制流的内容，核心机制就是 <code>stvec</code> 寄存器存着 <code>kernel/trampoline.S</code> 的 <code>uservec</code> 函数地址，用户态要陷入或者 CPU 接收到中断就保存 PC，然后跳转到这个用户态中断向量处，它会负责保存现场然后跳转到 <code>kernel/trap.c</code> 的 <code>usertrap</code> 处，然后 <code>usertrap</code> 就根据 <code>scause</code> 寄存器进行处理。</p>
+<p>xv6 的中断处理流程和王道操作系统给的一般流程基本一致：</p>
+<ul>
+<li>硬件完成：关中断$\rightarrow$保存断点$\rightarrow$中断服务程序寻址；</li>
+<li>中断程序完成：保存现场和屏蔽字$\rightarrow$开中断$\rightarrow$中断服务$\rightarrow$关中断$\rightarrow$恢复现场和屏蔽字$\rightarrow$开中断$\rightarrow$返回。</li>
+</ul>
+<h2 id="RISC-V-assembly"><a href="#RISC-V-assembly" class="headerlink" title="RISC-V assembly"></a>RISC-V assembly</h2><p>一些简单的 QA，值得一提的就是最后一问 <code>printf(&quot;x=%d y=%d&quot;, 3);</code> 的输出。只要知道 RISC-V 传参是通过 <code>a0</code>-<code>a7</code> 寄存器传参就知道最终 y 的值应该是 <code>a2</code> 寄存器的值。</p>
+<h2 id="Backtrace"><a href="#Backtrace" class="headerlink" title="Backtrace"></a>Backtrace</h2><p>在 <code>kernel/printf.c</code> 里实现一个函数来输出目前栈中的函数调用链。实现思路就是先用内联汇编写一个函数 <code>r_fp</code> 从 <code>s0</code> 寄存器读取当前函数的栈帧地址 <code>fp</code>，然后根据 xv6 的栈帧结构，<code>fp - 8</code> 就是函数返回地址（要输出的内容），<code>fp - 16</code> 就是上一个函数栈帧的地址，一直迭代到 <code>fp</code> 所在页的最高地址（xv6 栈从高到低生长）。</p>
+<h2 id="Alarm"><a href="#Alarm" class="headerlink" title="Alarm"></a>Alarm</h2><p>真正用到 trap 机制的题目，要求实现一个系统调用 <code>sigalarm(int ticks, void (*handler)())</code>，进程调用后每经过 <code>ticks</code> 个时钟中断就跳转到 <code>handler</code>，执行完之后再返回跳转前的位置。</p>
+<p>这个题目的第一个关键点在于知道 <code>kernel/trap.c</code> 的 <code>usertrap</code> 中</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-keyword">if</span>(which_dev == <span class="hljs-number">2</span>)<br>    yield()<br></code></pre></td></tr></table></figure>
+<p>是处理时钟中断的内容，那么我们给每个进程增加 <code>ticks</code>、<code>interval</code> 这些 field 用于判断何时应该调用 <code>handler</code> 即可。</p>
+<p>第二个关键点是如何实现 <code>handler</code> 的跳转和返回。前面提到硬件在跳转时负责保存 PC，保存的位置就是 <code>sepc</code> 寄存器；而 <code>usertrap</code> 函数会把 <code>sepc</code> 的值写到进程的 <code>trapframe-&gt;epc</code> 中，所以我们直接修改 <code>p-&gt;trapframe-&gt;epc</code> 就能实现返回用户态时跳转到 <code>handler</code>。</p>
+<p>为了实现从 <code>handler</code> 中返回，题目提供了一种机制：即每个 <code>handler</code> 都需要在最后调用系统调用 <code>sigreturn</code>。基于此，我们只需要把修改前的 <code>trapframe</code> 做一个备份（直接存在 <code>p-&gt;trapframe</code> 所在页即可，因为本来他就只占了 280 多 byte），然后在 <code>sigreturn</code> 中把备份的 <code>trapframe</code> 覆写回来。</p>
+<h1 id="Lab5-Copy-on-Write-Fork"><a href="#Lab5-Copy-on-Write-Fork" class="headerlink" title="Lab5 Copy-on-Write Fork"></a>Lab5 Copy-on-Write Fork</h1><p>实验五要求实现写时复制的 fork。为了实现这个机制，要完成以下几个工作：</p>
+<ol>
+<li>使用 RISC-V PTE 的 RSW 位为 cow 造成的缺页作标识；</li>
+<li>为每个物理页记录一个引用数（可以直接存到数组中），目的是防止出现类似父进程退出之后子进程的物理页也被释放的情况；</li>
+<li>在 <code>fork</code> 调用的 <code>uvmcopy</code> 中，不再为子进程分配新的物理页并复制父进程的物理页，而是直接将子进程的虚拟地址映射到父进程的物理页，并更新 PTE_W，PTE_COW，引用数；</li>
+<li>在 <code>usertrap</code> 中，<code>scause</code> 的值为 12，13，15 时说明出现缺页，此时检查 PTE_COW 位，若缺页则分配新物理页、复制原有内容并修改页表映射、引用数；</li>
+<li>在 <code>copyout</code> 中内核也可能访问 COW 页面，此时的处理逻辑和 <code>usertrap</code> 是一样的；</li>
+</ol>
+<p>结合上面的总结，我们有以下几点需要注意：</p>
+<ol>
+<li>对物理页引用数组的更新需要谨慎设计加锁逻辑，不要出现父进程创建新物理页之后还没更新引用数组，又切换到子进程让它以为还需要创建新物理页的情况；</li>
+<li>把一个 cow 页处理为能够正常访问的页面的功能在两个地方都要调用，可以封装为一个函数；这个函数会修改原有 pte 映射的物理地址，不用调用 <code>mappages</code> ，直接改 pte 即可。</li>
+</ol>
+<h1 id="Lab6-Multithreading"><a href="#Lab6-Multithreading" class="headerlink" title="Lab6 Multithreading"></a>Lab6 Multithreading</h1><p>这个实验涉及的核心内容是 xv6 如何实现进程切换。总结起来，每个时钟中断后无论是内核态还是用户态，最后都会调用 <code>yield</code> 函数来让当前进程放弃 CPU 并将控制权交给 kernel 中本来运行着的调度线程，调度线程选一个新进程之后再把控制权交给它。</p>
+<p>所谓控制权的交换，就是上下文的切换，即寄存器内容的切换。通过修改寄存器 <code>ra</code> 的值，函数的返回地址就能改变。</p>
+<h2 id="switching-between-threads"><a href="#switching-between-threads" class="headerlink" title="switching between threads"></a>switching between threads</h2><p>在 xv6 中实现线程切换。和进程切换的逻辑没有任何区别，给每个线程定义一个 <code>context</code> 成员，保存该线程的现场，然后用汇编代码直接交换 context 即可。</p>
+<h2 id="using-threads"><a href="#using-threads" class="headerlink" title="using threads"></a>using threads</h2><p>本题要求用 pthread 库提供的互斥锁实现多线程操作哈希表。题目的哈希表用了头插法，如果不用锁会导致表头指针未指向新元素时切换线程，新线程再插入元素导致内存泄漏。为了加快速度，可以降低锁的粒度，即根据哈希值使用锁。</p>
+<h2 id="barrier"><a href="#barrier" class="headerlink" title="barrier"></a>barrier</h2><p>本题要求用 pthread 库提供的条件变量实现 barrier：执行到 <code>barrier</code> 的线程会阻塞直到所有线程都执行到这里。这个特性是通过</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs C">pthread_cond_wait(&amp;bstate.barrier_cond, &amp;bstate.barrier_mutex);<br>pthread_cond_broadcast(&amp;bstate.barrier_cond);<br></code></pre></td></tr></table></figure>
+<p>这一对函数来实现的：前者要求已获得锁 <code>bstate.barrier_mutex</code>，它会原子地释放锁并阻塞在条件变量 <code>bstate.barrier_cond</code>；后者会唤醒所有等待在 <code>bstate.barrier_cond</code> 上的线程，同时该线程会尝试重新获取它之前释放的锁。</p>
+<h1 id="Lab7-networking"><a href="#Lab7-networking" class="headerlink" title="Lab7 networking"></a>Lab7 networking</h1><p>在 xv6 中为 E1000 网卡写驱动。看起来相当复杂，但实验基础架构都已经被实现完毕，只要求完成网卡的发送和接收函数。</p>
+<p>完成本实验首先需要知道 E1000 发送接收数据包使用的数据结构是所谓的 <code>tx_desc</code> 和 <code>rx_desc</code>。每个 descriptor 会保存一个 <code>mubf</code> 结构的地址、长度、是否发送/接收完毕等信息。在此基础上，以发送函数为例，我们根据指导书知道 <code>regs[E1000_TDT]</code> 记录着下一个发送 descriptor 的索引，而 <code>tx_mbufs</code> 会保存该 descriptor 对应的 <code>mbuf</code> 链表，我们只需要根据指导书提示及时释放、分配 <code>mbuf</code> 并修改命令字段即可。</p>
+<p>注意发送函数存在竞争，需要加锁；接收函数位于中断处理程序中，没有竞争，但为了及时处理所有块，需要用 <code>while(1)</code> 将函数体包裹。</p>
+<h1 id="Lab8-Lock"><a href="#Lab8-Lock" class="headerlink" title="Lab8 Lock"></a>Lab8 Lock</h1><h2 id="memory-allocator"><a href="#memory-allocator" class="headerlink" title="memory allocator"></a>memory allocator</h2><p>内核通过 kalloc 从 kmem 保存的空闲物理页链表中分配内存，而所有 CPU 共用一个 kmem 的代价是锁的竞争非常激烈，导致并行性的下降。题目要求我们为每个 CPU 单独维护一个空闲物理页链表，当前 CPU 的物理页不够用时从其他 CPU 窃取。</p>
+<p>本题每个 CPU 仅在自己空白页不够用时才会访问其他 CPU 的物理页链表，注意不要在持有锁的同时尝试窃取其他 CPU 的物理页以避免死锁；如果本 CPU 没有空白页，可以直接获取其他 CPU 的锁然后返回它们的空白页，本 CPU 运行 <code>kfree</code> 时会把空白页加到自己的链表。</p>
+<h2 id="buffer-cache"><a href="#buffer-cache" class="headerlink" title="buffer cache"></a>buffer cache</h2><p>本题比上题难得多。首先需要对文件系统有一定了解：内核在内存中为 NBUF 个磁盘块实现了缓存，缓存块被定义在 <code>kernel/buf.h</code> 中；每个 buf 除了保存磁盘块的内容，还记录了设备号、磁盘块号等信息；同时，当某 CPU 想要访问特定块号的磁盘块时，若缓存未命中，则根据 LRU 链表来实现磁盘块替换，因此 buf 还要保存 LRU 链表的指针；此外，读写磁盘块内容时必须加锁，所以 buf 还包含一个睡眠锁。</p>
+<p>内核通过 <code>bread</code> 和 <code>bwrite</code> 来实现对特定磁盘块的读写，其中 <code>bread</code> 会通过 <code>bget</code> 函数获取保存着目标磁盘块的 buf（若缓存未命中则将其替换进内存）；当 CPU 不需要读写该磁盘块时，通过 <code>brelse</code> 释放相应 buf 的锁，并判断是否需要更新其在 LRU 中的位置。为了保持每个 buf 中信息被原子的修改、读取，xv6 采用一个大锁 <code>bcache.lock</code>，而本实验的任务就是将其拆分为若干个小锁以提高并行度，要修改的也就是 <code>bget</code> 和 <code>brelse</code>。</p>
+<p>在上题中给每个 CPU 分配物理页的方式行不通，因为不同于空白物理页用谁的都一样，每个 CPU 都可能不得不访问某个特定的磁盘块。根据 hints，我们将 buf 依据 blockno 拆分为 13 个桶，每个桶单独维护一个链表和一个锁。本题的难点在于，在某个桶中找不到特定磁盘块时，我们需要在已获取当前桶的锁后，去请求其他桶的锁来尝试驱逐页面，这就很可能造成死锁。</p>
+<p>如果规定顺序获取每个桶的锁，那么效率估计还不如大锁，所以缓存未命中时，我们可以先放弃当前桶的锁，然后挨个申请其他桶的锁来驱逐页面。但是这样做引出了新的问题：多个 CPU 对同一个磁盘块进行 bget 时，驱逐过程不加锁可能会导致为了一个页面进行了多次驱逐。考虑到题目 hint 强调：</p>
+<blockquote>
+<p>It is OK to serialize eviction in bget.</p>
+</blockquote>
+<p>所以可以定义一个驱逐锁，同时间只允许一个 CPU 进行驱逐；同时获取该锁后马上检查其他 CPU 是否已经完成了驱逐，若是则直接返回即可。具体的驱逐过程编写也是颇有技巧，但是不在此赘述，只要记得将目标 buf 从原来的桶移入当前桶时，两个桶的锁都必须保持在手中，同时不要忘记释放驱逐锁即可。</p>
+<h1 id="Lab9-File-system"><a href="#Lab9-File-system" class="headerlink" title="Lab9 File system"></a>Lab9 File system</h1><p>文件系统是一个很大的模块，本实验也只是涉及到了其中的一小部分。总的来说，完成本实验大致要了解这些概念：</p>
+<ul>
+<li>inode：磁盘上的 inode 记录着一个文件的类型、（硬）链接数、大小和所有数据块（包括直接块和各级索引块）对应的块号等信息；内存中的 inode 还会额外记录文件的设备号、inode 编号、内存中的引用数、合法性等信息；</li>
+<li>dirent：一个目录项对应一个文件或目录，dirent 中记录着文件名和 inode 编号，目录型文件的 inode 记录的数据块保存着目录中所有文件的 dirent；</li>
+<li>给定文件路径，想要找到其对应的 inode，需要从进程的工作目录或根目录 inode 开始寻找对应名字的 dirent；</li>
+</ul>
+<h2 id="Large-files"><a href="#Large-files" class="headerlink" title="Large files"></a>Large files</h2><p>xv6 文件系统定义的 inode 中包含 12 个直接块和 1 个一级索引块，因此能支持的最大文件可以有 $12 + 256 = 268$ 个磁盘块；本题要求将其改为 11 个直接块、1 个一级索引块、1 个二级索引块，这样修改后的文件系统支持最大文件块数为 $11 + 256 + 256^2=65803$。</p>
+<p>xv6 中 <code>bmap</code> 函数负责读取 inode 的索引块，返回 inode 的第 <code>bn</code> 个数据块对应的磁盘块号。这个题目只需要仿照原版 <code>bmap</code> 对一级索引块的处理，关键的 api 是通过 <code>bread</code> 把指定块号读入内存，二级索引只不过是需要再读一次。记得修改 <code>itrunc</code> 使其能够释放 inode 的所有数据块。</p>
+<h2 id="Symbolic-links"><a href="#Symbolic-links" class="headerlink" title="Symbolic links"></a>Symbolic links</h2><p>这个题目会略难一些，要求在 xv6 中实现软链接。首先要知道软链接是一个独立的文件，有自己的 inode（硬链接则是不同 dirent 指向同一个 inode）；软链接的 inode 中保存其文件类型（xv6 中是 T_SYMLINK）和指向文件的路径（建立软链接时建议用绝对路径，否则移动软链接会找不到指向的文件）。在进程 <code>open</code> 一个软链接时，内核会自动递归寻找其指向的文件（用户进程可以通过指定 O_NOFOLLOW 参数来打开软链接本身）。</p>
+<p>题目通过实现一个系统调用 <code>symlink(char *target, char *path)</code> 在 <code>path</code> 处创建一个指向 <code>target</code> 的软链接。这里完全可以参考 <code>sys_mknod</code> 创建设备文件的思路，通过 <code>create</code> 在指定路径创建一个 <code>T_SYMLINK</code> 类型的 inode，再调用 <code>writei</code> 向 inode 中写入目标路径。接下来需要修改 <code>open</code>，获取到目标 inode 后判断其是否为软链接类型，如果是则递归寻找其指向文件的 inode，这里的关键 api 是：</p>
+<ul>
+<li>readi：用于读取软链接的文件内容以确定其指向文件的路径；</li>
+<li>namei：根据路径返回 inode 指针。</li>
+</ul>
+<p>如果软链接之间形成了环，可以在递归层数超过 10 时直接报错；记得关注 inode 的锁是否在递归中及时释放了。</p>
+<h1 id="Lab10-mmap"><a href="#Lab10-mmap" class="headerlink" title="Lab10 mmap"></a>Lab10 mmap</h1><p>本实验要求为 xv6 实现一个系统调用 <code>mmap</code>。整个实验并没有太多难点，但是代码量比较大，调试也会有一定难度。实验只要求实现 <code>mmap</code> 的一个（玩具）功能，即将进程的一段虚拟地址空间映射到一个打开的文件中，并通过读写这段地址来间接访问文件。这样做可以方便多个进程对同一个文件的共享（尤其是只读的代码段等），也可以加速一个进程对文件的读写（不必通过 <code>read</code> 和 <code>write</code> 频繁进入内核空间并访问缓冲区等）。</p>
+<blockquote>
+<p>值得一提的是，常用的 <code>malloc</code> 作为一个用户态库函数，其底层也依赖系统调用 <code>mmap</code> （或是 <code>sbrk</code>）。</p>
+</blockquote>
+<p>整个实验的核心是指导书中提示的 VMA 结构，它保存着一块被映射虚拟地址的起点、长度、文件描述符、读写权限、是否共享等关键信息，每个进程都应当有自己的 VMA 数组（或链表）。本实验的核心问题在于如何为进程寻找未被使用的虚拟地址。事实上我们可以直接从进程的 <code>sz</code> 成员开始分配，虽然在 <code>munmap</code> 后会导致内存泄漏，且释放进程内存时会出现很多为 0 的 pte，但足以满足本实验的要求。</p>
+<p>在 <code>sys_mmap</code> 中设置好 VMA 后，下一步是在 <code>usertrap</code> 中完成对缺页异常的处理（因为采用了懒分配），也就是判断是否为 <code>mmap</code> 导致的缺页，如果是则分配新物理页，将文件相应位置内容读进来，并且完成用户进程的页面映射。接下来需要实现 <code>munmap</code>，思路就是清空 pte，释放页面，并根据页面是否为 shared 决定是否需要写回原文件。至于 <code>fork</code> 和 <code>exit</code> 的修改不必赘述。</p>
+
+              
+            </div>
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>MIT 6.S081 2021 xv6 labs</div>
+      <div>https://ch3chohch3.github.io/2023/02/22/mit6s081_2021_labs/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>CH3CHOHCH3</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年2月22日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/16/top_down_parser/" title="自顶向下的语法分析">
+                        <span class="hidden-mobile">自顶向下的语法分析</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <p>Email-ybc20020730@gmail.com</p>
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script>
+  (function() {
+    var enableLang = CONFIG.code_language.enable && CONFIG.code_language.default;
+    var enableCopy = CONFIG.copy_btn;
+    if (!enableLang && !enableCopy) {
+      return;
+    }
+
+    function getBgClass(ele) {
+      return Fluid.utils.getBackgroundLightness(ele) >= 0 ? 'code-widget-light' : 'code-widget-dark';
+    }
+
+    var copyTmpl = '';
+    copyTmpl += '<div class="code-widget">';
+    copyTmpl += 'LANG';
+    copyTmpl += '</div>';
+    jQuery('.markdown-body pre').each(function() {
+      var $pre = jQuery(this);
+      if ($pre.find('code.mermaid').length > 0) {
+        return;
+      }
+      if ($pre.find('span.line').length > 0) {
+        return;
+      }
+
+      var lang = '';
+
+      if (enableLang) {
+        lang = CONFIG.code_language.default;
+        if ($pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2 && $pre.children().hasClass('hljs')) {
+          lang = $pre[0].children[0].classList[1];
+        } else if ($pre[0].getAttribute('data-language')) {
+          lang = $pre[0].getAttribute('data-language');
+        } else if ($pre.parent().hasClass('sourceCode') && $pre[0].children.length > 0 && $pre[0].children[0].classList.length >= 2) {
+          lang = $pre[0].children[0].classList[1];
+          $pre.parent().addClass('code-wrapper');
+        } else if ($pre.parent().hasClass('markdown-body') && $pre[0].classList.length === 0) {
+          $pre.wrap('<div class="code-wrapper"></div>');
+        }
+        lang = lang.toUpperCase().replace('NONE', CONFIG.code_language.default);
+      }
+      $pre.append(copyTmpl.replace('LANG', lang).replace('code-widget">',
+        getBgClass($pre[0]) + (enableCopy ? ' code-widget copy-btn" data-clipboard-snippet><i class="iconfont icon-copy"></i>' : ' code-widget">')));
+
+      if (enableCopy) {
+        Fluid.utils.createScript('https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js', function() {
+          var clipboard = new window.ClipboardJS('.copy-btn', {
+            target: function(trigger) {
+              var nodes = trigger.parentNode.childNodes;
+              for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].tagName === 'CODE') {
+                  return nodes[i];
+                }
+              }
+            }
+          });
+          clipboard.on('success', function(e) {
+            e.clearSelection();
+            e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-copy', 'icon-success');
+            setTimeout(function() {
+              e.trigger.innerHTML = e.trigger.innerHTML.replace('icon-success', 'icon-copy');
+            }, 2000);
+          });
+        });
+      }
+    });
+  })();
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
