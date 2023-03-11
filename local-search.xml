@@ -4,6 +4,27 @@
   
   
   <entry>
+    <title>eBPF 原理与应用纪要</title>
+    <link href="/2023/03/10/eBPF_summary/"/>
+    <url>/2023/03/10/eBPF_summary/</url>
+    
+    <content type="html"><![CDATA[<p>网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。</p><h1 id="eBPF-概述"><a href="#eBPF-概述" class="headerlink" title="eBPF 概述"></a>eBPF 概述</h1><p>eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需求。内核能够获取系统运行的第一手数据，而用户态进程对数据的处理则是高度定制化的。如果将大量数据从内核拷贝到用户空间由进程处理，会带来很大开销；而用户对数据的处理需求又无穷无尽，不可能由内核提供稳定的接口来满足。我们可能会想到根据自己的需求修改内核代码，定制专门的内核模块；然而，每次修改后都需要重新编译、分发、部署内核的代价是巨大的，而且对内核的修改容易带来安全和稳定性方面的问题。</p><p>在内核中，eBPF 扮演的角色实质上等同于浏览器中的 js——一个在线的通用执行引擎。在 eBPF 的帮助下，我们可以在用户态编写代码，并将编译后得到的 BPF 字节码注入内核，挂载到指定的位置，并在触发后由内核提供的 BPF 虚拟机沙箱运行。</p><div class="note note-info">            <p>实际上在内核中植入一个通用执行引擎的最大好处应该就是大大减少了数据的拷贝量，毕竟在用户态编程更自由。</p>          </div><h1 id="kprobes-和-tracepoint"><a href="#kprobes-和-tracepoint" class="headerlink" title="kprobes 和 tracepoint"></a>kprobes 和 tracepoint</h1><p>就像 debugger 可以给程序的任意指令地址插入断点，插桩技术可以跟踪运行中的程序（或内核）并记录相关函数的信息、执行用户定义的操作。其中，kprobes（和 uprobes）为动态插桩，可以挂载到任意函数的入口和出口；tracepoint（和 USDT）是被硬编码到软件代码中静态插桩点，由软件开发者维护。</p><p>显然，kprobes 更为灵活，但软件版本的修改可能导致对目标函数挂载的失效；tracepoint 由开发者维护，数量有限但更为稳定。因此，当条件允许时应优先使用 tracepoint，而非 kprobes。</p><p>使用 kprobes 主要有三种接口：</p><ol><li>利用 kprobes api 编写内核模块，然后加载该模块；</li><li>基于 ftrace，向特定文件写入字符串来开启 kprobes；</li><li>利用 <code>perf_event_open</code> 系统调用，基于 <code>perf_event</code> 机制；</li></ol><p>其中第三种方式是当前 BPF 前端常用的挂载方式。</p><div class="note note-info">            <p>kprobes 是通过在线修改内核指令段实现的，即保存待插桩地址的指令，将其覆盖为中断或 jmp 指令，并执行 kprobe 处理函数。当使用 uprobes 对用户态库函数（如 <code>malloc</code> 或是 <code>gethostbyname</code>）进行追踪时，现有的方案还需要通过中断等技术进行内核的往返。</p>          </div><h1 id="ftrace-和-perf"><a href="#ftrace-和-perf" class="headerlink" title="ftrace 和 perf"></a>ftrace 和 perf</h1><p>在 eBPF 之前，基于 kprobes 和 tracepoint 的监测工具已经有很多。其中，有利用内核 tracepoint 的 ftrace，还有基于内核的 <code>perf_event</code> 而能够对 tracepoint、kprobes/uprobes 和 PMU 等多种事件进行数据统计的 perf, 以及基于自己开发的内核模块的 SystemTap 等等。</p><p>然而，尽管有着如此多的性能监测工具，eBPF 却是唯一一个能够<strong>在内核态执行用户自定义逻辑</strong>（如 perf 在内核态只有简单计数功能），且稳定置于 Linux 内核的结构（如 SystemTap 自行开发的内核模块在 REHL 发行版之外的 Linux 上被证明不太可靠）。</p><h1 id="eBPF-前端"><a href="#eBPF-前端" class="headerlink" title="eBPF 前端"></a>eBPF 前端</h1><p>目前 eBPF 最广泛使用的前端应当是 bcc 和 bpftrace，这二者都提供了 BPF 编程的高级语言。这里我们并不关注编程的细节，而是大致分析 BPF 程序生效的流程。</p><p>我们往往希望基于事件编写 BPF 程序，而事件源可以是 kprobes、tracepoint 等。在 BPF 的早期，它只用来进行数据包的过滤，对多种事件源的支持是后来加入的特性。现在常用的前端往往基于这样一个流程实现 BPF 编程（以基于 kprobes 的 BPF 程序为例）：</p><ol><li>编写 BPF 程序，并编译为 BPF 字节码；</li><li>通过命令为 <code>BPF_PROG_LOAD</code> 的 <code>bpf</code> 系统调用，将 BPF 程序交给内核，由内核负责合法性检验和可能的 JIT 编译等工作，最终获取一个与该 BPF 程序相关联的文件描述符；</li><li>通过 <code>perf_event_open</code> 系统调用获取一个 kprobes 类型的 <code>perf_event</code> 相关联的文件描述符；</li><li>通过 <code>ioctl</code> 函数将 BPF 程序的文件描述符关联到 <code>perf_event</code> 的文件描述符上；</li></ol><p>总结：基于 <code>bpf</code> 系统调用将 BPF 程序注入内核，然后基于 <code>perf_event_open</code> 系统调用和 <code>ioctl</code> 将 BPF 程序挂载到 kprobes 类型的 <code>perf_event</code>。</p><div class="note note-info">            <p>将 BPF 程序挂载到 kprobes 上只是 Linux perf 子系统中一个小小的功能。然而，perf 提供的其他功能并没有 BPF 独有的内核可编程性。</p>          </div>]]></content>
+    
+    
+    <categories>
+      
+      <category>OS</category>
+      
+      <category>kernel</category>
+      
+    </categories>
+    
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>MIT 6.S081 2020 xv6 labs</title>
     <link href="/2023/02/28/mit6s081_2020_labs/"/>
     <url>/2023/02/28/mit6s081_2020_labs/</url>

@@ -16,24 +16,21 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="20 年的 xv6 实验和 21 年主要有两个不同：  20 年多了一个 sbrk 的 Lazy allocation； 20 年的页表实验和 21 年有很大不同，难度较高；               代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2020问答题直接看对应的 answers-lab.txt 即可。            Lab3 Page t">
+    <meta name="description" content="网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。 eBPF 概述eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需">
 <meta property="og:type" content="article">
-<meta property="og:title" content="MIT 6.S081 2020 xv6 labs">
-<meta property="og:url" content="https://ch3chohch3.github.io/2023/02/28/mit6s081_2020_labs/index.html">
+<meta property="og:title" content="eBPF 原理与应用纪要">
+<meta property="og:url" content="https://ch3chohch3.github.io/2023/03/10/eBPF_summary/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="20 年的 xv6 实验和 21 年主要有两个不同：  20 年多了一个 sbrk 的 Lazy allocation； 20 年的页表实验和 21 年有很大不同，难度较高；               代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2020问答题直接看对应的 answers-lab.txt 即可。            Lab3 Page t">
+<meta property="og:description" content="网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。 eBPF 概述eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://ch3chohch3.github.io/img/mit6s081_2020_labs/kernel_vaddress.png">
-<meta property="og:image" content="https://ch3chohch3.github.io/img/mit6s081_2020_labs/user_vaddress.png">
-<meta property="article:published_time" content="2023-02-28T13:58:00.000Z">
-<meta property="article:modified_time" content="2023-03-07T10:29:30.539Z">
+<meta property="article:published_time" content="2023-03-10T14:57:00.000Z">
+<meta property="article:modified_time" content="2023-03-11T16:34:31.711Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://ch3chohch3.github.io/img/mit6s081_2020_labs/kernel_vaddress.png">
   
   
   
-  <title>MIT 6.S081 2020 xv6 labs - CH3CHOHCH3&#39;s blog</title>
+  <title>eBPF 原理与应用纪要 - CH3CHOHCH3&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -184,7 +181,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="MIT 6.S081 2020 xv6 labs"></span>
+            <span id="subtitle" data-typed-text="eBPF 原理与应用纪要"></span>
           
         </div>
 
@@ -195,8 +192,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-02-28 21:58" pubdate>
-          2023年2月28日 晚上
+        <time datetime="2023-03-10 22:57" pubdate>
+          2023年3月10日 晚上
         </time>
       </span>
     
@@ -207,7 +204,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.8k 字
+          1.9k 字
         
       </span>
     
@@ -218,7 +215,7 @@
         
         
         
-          16 分钟
+          17 分钟
         
       </span>
     
@@ -256,54 +253,42 @@
         <div id="board">
           <article class="post-content mx-auto">
             <!-- SEO header -->
-            <h1 style="display: none">MIT 6.S081 2020 xv6 labs</h1>
+            <h1 style="display: none">eBPF 原理与应用纪要</h1>
             
             <div class="markdown-body">
               
-              <p>20 年的 xv6 实验和 21 年主要有两个不同：</p>
-<ul>
-<li>20 年多了一个 <code>sbrk</code> 的 Lazy allocation；</li>
-<li>20 年的页表实验和 21 年有很大不同，难度较高；</li>
-</ul>
-<div class="note note-success">
-            <p>代码：<a target="_blank" rel="noopener" href="https://github.com/CH3CHOHCH3/xv6-labs-2020">https://github.com/CH3CHOHCH3/xv6-labs-2020</a></p><p>问答题直接看对应的 answers-lab.txt 即可。</p>
+              <p>网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。</p>
+<h1 id="eBPF-概述"><a href="#eBPF-概述" class="headerlink" title="eBPF 概述"></a>eBPF 概述</h1><p>eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需求。内核能够获取系统运行的第一手数据，而用户态进程对数据的处理则是高度定制化的。如果将大量数据从内核拷贝到用户空间由进程处理，会带来很大开销；而用户对数据的处理需求又无穷无尽，不可能由内核提供稳定的接口来满足。我们可能会想到根据自己的需求修改内核代码，定制专门的内核模块；然而，每次修改后都需要重新编译、分发、部署内核的代价是巨大的，而且对内核的修改容易带来安全和稳定性方面的问题。</p>
+<p>在内核中，eBPF 扮演的角色实质上等同于浏览器中的 js——一个在线的通用执行引擎。在 eBPF 的帮助下，我们可以在用户态编写代码，并将编译后得到的 BPF 字节码注入内核，挂载到指定的位置，并在触发后由内核提供的 BPF 虚拟机沙箱运行。</p>
+<div class="note note-info">
+            <p>实际上在内核中植入一个通用执行引擎的最大好处应该就是大大减少了数据的拷贝量，毕竟在用户态编程更自由。</p>
           </div>
-<h1 id="Lab3-Page-tables"><a href="#Lab3-Page-tables" class="headerlink" title="Lab3 Page tables"></a>Lab3 Page tables</h1><p>xv6 的用户态和内核态使用不同的页表：每个进程有自己的进程页表，内核使用一个全局内核页表。当内核想要从进程地址空间获取参数，或是向其中写入内容时，xv6 采用的做法是利用内核数据的恒等映射，软件模拟 MMU 查询进程虚拟地址对应的物理地址。这个实验的主要目标是为每个进程实现自己的内核页表，切换进程时顺带切换内核页表，然后内核就能直接访问用户地址空间而不需要多次查询页表。</p>
-<p>注意，内核态和用户态之所以能共用页表，是因为 xv6 默认每个进程的虚拟地址空间从 0 开始依次是代码段、数据段、栈保护页、栈、堆，在虚拟地址空间最高处映射了 TRAMPOLINE 和 TRAPFRAME 两个页；而内核页表原本映射的最低处是 CLINT 对应的 0x2000000，但这个地址用来在机器态处理时钟，所以用户的内核页表完全没必要映射，最低地址变为 PLIC，最高地址则是 TRAMPOLINE 和每个进程的内核栈及保护页（内核不需要映射 TRAMPFRAME 页，直接访问 <code>p-&gt;trapframe</code> 即可）。</p>
-<div style="text-align:center">
-<img src="/img/mit6s081_2020_labs/kernel_vaddress.png" srcset="/img/loading.gif" lazyload>
-</div>
-
-<p>也就是说，为了满足用户态和内核态共用页表，用户进程占用的最高地址空间不能超过 PLIC，而进程需要用到的 TRAMPFRAME 则保存在用户页表中（其实可以处理一下 TRAPFRAME 和进程内核栈的冲突，每个进程的内核和用户态统一用一张页表，在陷入时甚至不需要切换页表）。</p>
-<h2 id="Print-a-page-table"><a href="#Print-a-page-table" class="headerlink" title="Print a page table"></a>Print a page table</h2><p>这个任务和 <a href="https://ch3chohch3.github.io/2023/02/22/mit6s081_2021_labs/#Print-a-page-table">21 年任务二</a>没有任何区别。</p>
-<h2 id="A-kernel-page-table-per-process"><a href="#A-kernel-page-table-per-process" class="headerlink" title="A kernel page table per process"></a>A kernel page table per process</h2><p>这个任务即为每个进程实现自己的内核页表，并处理好页表的切换和释放等细节。</p>
-<p>指导书的意见是给每个进程创建一份页表，然后参考 <code>kvminit</code> 把该映射的内容映射进去。事实上，我们知道每个进程用户态虚拟地址空间最多能用的大小只有 0xC000000，而三级页表中一个一级页表项能对应的地址空间大小为 0x40000000，所以我们只需要在 <code>allocproc</code> 中用一个页复制全局内核页表的 1-511 项，然后单独映射第 0 项（<a target="_blank" rel="noopener" href="https://github.com/CH3CHOHCH3/xv6-labs-2020/commit/483cb5b9d8bc7e3704da0ab6e26f90bbcca065ce#diff-f06ba4e6ae5b13cb787bad05af2c231bcf826410f25bfd78b18774115f0d20a8R125">代码实现</a>）</p>
-<p>而在 <code>freeproc</code> 中释放进程内核页表时，也只需要递归释放其第一项对应的页表项（物理页会被 <code>proc_freepagetable</code> 回收）。</p>
-<p>最后在 <code>scheduler</code> 中切换进程内核页表即可。</p>
-<h2 id="Simplify-copyin-copyinstr"><a href="#Simplify-copyin-copyinstr" class="headerlink" title="Simplify copyin/copyinstr"></a>Simplify copyin/copyinstr</h2><p>这个任务完成对 <code>copyin</code> 和 <code>copyinstr</code> 的最终简化。实验框架已经写好了这两个函数，只需要把原本的函数替换。我们需要做的是把进程的用户虚拟地址空间映射到进程自己的内核页表。这里面有两个问题：</p>
+<h1 id="kprobes-和-tracepoint"><a href="#kprobes-和-tracepoint" class="headerlink" title="kprobes 和 tracepoint"></a>kprobes 和 tracepoint</h1><p>就像 debugger 可以给程序的任意指令地址插入断点，插桩技术可以跟踪运行中的程序（或内核）并记录相关函数的信息、执行用户定义的操作。其中，kprobes（和 uprobes）为动态插桩，可以挂载到任意函数的入口和出口；tracepoint（和 USDT）是被硬编码到软件代码中静态插桩点，由软件开发者维护。</p>
+<p>显然，kprobes 更为灵活，但软件版本的修改可能导致对目标函数挂载的失效；tracepoint 由开发者维护，数量有限但更为稳定。因此，当条件允许时应优先使用 tracepoint，而非 kprobes。</p>
+<p>使用 kprobes 主要有三种接口：</p>
 <ol>
-<li>怎么映射：<a target="_blank" rel="noopener" href="https://github.com/CH3CHOHCH3/xv6-labs-2020/commit/e7dbec8242cc819b6d7d19d7ac555b9d6c1793c8#diff-6eeb81e8dc9689c28a91a11fb716202a1efd81665e5f3586082b2ab82a7c8a3dR478">代码</a>胜千言；</li>
-<li>何时映射：进程最初创建的时候要完成映射，这里主要是 <code>fork</code> 和 <code>userinit</code> 两个函数；进程修改页表项的时候，要修改映射，这里主要是 <code>sbrk</code> 和 <code>exec</code>，具体映射时机和参数可以参考同一个 commit；</li>
+<li>利用 kprobes api 编写内核模块，然后加载该模块；</li>
+<li>基于 ftrace，向特定文件写入字符串来开启 kprobes；</li>
+<li>利用 <code>perf_event_open</code> 系统调用，基于 <code>perf_event</code> 机制；</li>
 </ol>
-<p>解决这两个问题，也就完成了本次实验。</p>
-<h1 id="Lab5-Lazy-allocation"><a href="#Lab5-Lazy-allocation" class="headerlink" title="Lab5 Lazy allocation"></a>Lab5 Lazy allocation</h1><p>本实验要求为 <code>sbrk</code> 系统调用增加的页面实现 Lazy 分配。众所周知，<code>sbrk</code> 会增加进程堆的大小，内核为其分配物理页并完成内存映射；而所谓 lazy 分配即只增加 <code>p-&gt;sz</code> 的大小，而物理页的分配延迟到缺页中断处理程序进行。实现这个功能比想象中更复杂一些，因为“本应存在的虚拟内存”这一概念会在很多地方带来问题。</p>
-<p>首先，我们修改 <code>sys_sbrk</code> 的实现：</p>
-<ul>
-<li>对于正参数，只增加 <code>p-&gt;sz</code> 并返回；</li>
-<li>对于负参数，参考 <code>growproc</code>，直接调用 <code>uvmdealloc</code>；</li>
-</ul>
-<p>接下来，在 <code>usertrap</code> 中增加缺页的中断处理代码。这里需要判断是否是 lazy 分配导致的缺页，具体来说，发生缺页的虚拟地址应当满足：</p>
-<ul>
-<li>不超过 <code>p-&gt;sz</code>；</li>
-<li>不低于进程的用户栈；</li>
-</ul>
-<p>可以参考 xv6 book 中关于进程虚拟内存分布的图：</p>
-<div style="text-align:center">
-<img src="/img/mit6s081_2020_labs/user_vaddress.png" srcset="/img/loading.gif" lazyload>
-</div>
-
-<p>除此之外，未映射的虚拟地址会导致 <code>uvmcopy</code> 和 <code>uvmunmap</code> 报错，这里可以直接把 <code>panic</code> 改为 <code>continue</code>；而且内核通过 <code>copyin</code>/<code>copyout</code> 访问未分配的虚拟地址也会报错，这两个函数依然需要判断是否是 lazy 分配导致的缺页并为之分配物理页、完成映射。</p>
-
+<p>其中第三种方式是当前 BPF 前端常用的挂载方式。</p>
+<div class="note note-info">
+            <p>kprobes 是通过在线修改内核指令段实现的，即保存待插桩地址的指令，将其覆盖为中断或 jmp 指令，并执行 kprobe 处理函数。当使用 uprobes 对用户态库函数（如 <code>malloc</code> 或是 <code>gethostbyname</code>）进行追踪时，现有的方案还需要通过中断等技术进行内核的往返。</p>
+          </div>
+<h1 id="ftrace-和-perf"><a href="#ftrace-和-perf" class="headerlink" title="ftrace 和 perf"></a>ftrace 和 perf</h1><p>在 eBPF 之前，基于 kprobes 和 tracepoint 的监测工具已经有很多。其中，有利用内核 tracepoint 的 ftrace，还有基于内核的 <code>perf_event</code> 而能够对 tracepoint、kprobes/uprobes 和 PMU 等多种事件进行数据统计的 perf, 以及基于自己开发的内核模块的 SystemTap 等等。</p>
+<p>然而，尽管有着如此多的性能监测工具，eBPF 却是唯一一个能够<strong>在内核态执行用户自定义逻辑</strong>（如 perf 在内核态只有简单计数功能），且稳定置于 Linux 内核的结构（如 SystemTap 自行开发的内核模块在 REHL 发行版之外的 Linux 上被证明不太可靠）。</p>
+<h1 id="eBPF-前端"><a href="#eBPF-前端" class="headerlink" title="eBPF 前端"></a>eBPF 前端</h1><p>目前 eBPF 最广泛使用的前端应当是 bcc 和 bpftrace，这二者都提供了 BPF 编程的高级语言。这里我们并不关注编程的细节，而是大致分析 BPF 程序生效的流程。</p>
+<p>我们往往希望基于事件编写 BPF 程序，而事件源可以是 kprobes、tracepoint 等。在 BPF 的早期，它只用来进行数据包的过滤，对多种事件源的支持是后来加入的特性。现在常用的前端往往基于这样一个流程实现 BPF 编程（以基于 kprobes 的 BPF 程序为例）：</p>
+<ol>
+<li>编写 BPF 程序，并编译为 BPF 字节码；</li>
+<li>通过命令为 <code>BPF_PROG_LOAD</code> 的 <code>bpf</code> 系统调用，将 BPF 程序交给内核，由内核负责合法性检验和可能的 JIT 编译等工作，最终获取一个与该 BPF 程序相关联的文件描述符；</li>
+<li>通过 <code>perf_event_open</code> 系统调用获取一个 kprobes 类型的 <code>perf_event</code> 相关联的文件描述符；</li>
+<li>通过 <code>ioctl</code> 函数将 BPF 程序的文件描述符关联到 <code>perf_event</code> 的文件描述符上；</li>
+</ol>
+<p>总结：基于 <code>bpf</code> 系统调用将 BPF 程序注入内核，然后基于 <code>perf_event_open</code> 系统调用和 <code>ioctl</code> 将 BPF 程序挂载到 kprobes 类型的 <code>perf_event</code>。</p>
+<div class="note note-info">
+            <p>将 BPF 程序挂载到 kprobes 上只是 Linux perf 子系统中一个小小的功能。然而，perf 提供的其他功能并没有 BPF 独有的内核可编程性。</p>
+          </div>
               
             </div>
             <hr/>
@@ -325,7 +310,7 @@
   
     <span>></span>
     
-  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
+  <a href="/categories/OS/kernel/" class="category-chain-item">kernel</a>
   
   
 
@@ -347,8 +332,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>MIT 6.S081 2020 xv6 labs</div>
-      <div>https://ch3chohch3.github.io/2023/02/28/mit6s081_2020_labs/</div>
+      <div>eBPF 原理与应用纪要</div>
+      <div>https://ch3chohch3.github.io/2023/03/10/eBPF_summary/</div>
     </div>
     <div class="license-meta">
       
@@ -360,7 +345,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2023年2月28日</div>
+          <div>2023年3月10日</div>
         </div>
       
       
@@ -390,18 +375,12 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2023/03/10/eBPF_summary/" title="eBPF 原理与应用纪要">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">eBPF 原理与应用纪要</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2023/02/22/mit6s081_2021_labs/" title="MIT 6.S081 2021 xv6 labs">
-                        <span class="hidden-mobile">MIT 6.S081 2021 xv6 labs</span>
+                      <a href="/2023/02/28/mit6s081_2020_labs/" title="MIT 6.S081 2020 xv6 labs">
+                        <span class="hidden-mobile">MIT 6.S081 2020 xv6 labs</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
