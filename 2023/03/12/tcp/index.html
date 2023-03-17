@@ -16,21 +16,21 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。 eBPF 概述eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需">
+    <meta name="description" content="数据在信道传输的过程中，要考虑两种情况：  比特差错：分组能到达，但其中的比特可能受损； 丢包：分组可能被整个丢失，完全不能到达；  以下讨论中，我们暂且假设分组在发送方和接收方的信道中不会被重新排序，即发送方以 1，2 的顺序发包，接收方就不会在收到 2 之后才收到 1（如果先收到 2 说明 1 一定发生了丢包）。 针对比特差错的考虑先考虑信道只出现比特差错的情况。为处理这种情况，引入 ARQ（">
 <meta property="og:type" content="article">
-<meta property="og:title" content="eBPF 原理与应用纪要">
-<meta property="og:url" content="https://ch3chohch3.github.io/2023/03/10/eBPF_summary/index.html">
+<meta property="og:title" content="TCP 上篇：可靠数据传输原理">
+<meta property="og:url" content="https://ch3chohch3.github.io/2023/03/12/tcp/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。 eBPF 概述eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需">
+<meta property="og:description" content="数据在信道传输的过程中，要考虑两种情况：  比特差错：分组能到达，但其中的比特可能受损； 丢包：分组可能被整个丢失，完全不能到达；  以下讨论中，我们暂且假设分组在发送方和接收方的信道中不会被重新排序，即发送方以 1，2 的顺序发包，接收方就不会在收到 2 之后才收到 1（如果先收到 2 说明 1 一定发生了丢包）。 针对比特差错的考虑先考虑信道只出现比特差错的情况。为处理这种情况，引入 ARQ（">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2023-03-10T14:57:00.000Z">
-<meta property="article:modified_time" content="2023-03-12T02:34:11.808Z">
+<meta property="article:published_time" content="2023-03-12T14:57:00.000Z">
+<meta property="article:modified_time" content="2023-03-17T08:26:14.087Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>eBPF 原理与应用纪要 - CH3CHOHCH3&#39;s blog</title>
+  <title>TCP 上篇：可靠数据传输原理 - CH3CHOHCH3&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -181,7 +181,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="eBPF 原理与应用纪要"></span>
+            <span id="subtitle" data-typed-text="TCP 上篇：可靠数据传输原理"></span>
           
         </div>
 
@@ -192,8 +192,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-03-10 22:57" pubdate>
-          2023年3月10日 晚上
+        <time datetime="2023-03-12 22:57" pubdate>
+          2023年3月12日 晚上
         </time>
       </span>
     
@@ -204,7 +204,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.9k 字
+          1.7k 字
         
       </span>
     
@@ -215,7 +215,7 @@
         
         
         
-          17 分钟
+          14 分钟
         
       </span>
     
@@ -253,42 +253,44 @@
         <div id="board">
           <article class="post-content mx-auto">
             <!-- SEO header -->
-            <h1 style="display: none">eBPF 原理与应用纪要</h1>
+            <h1 style="display: none">TCP 上篇：可靠数据传输原理</h1>
             
             <div class="markdown-body">
               
-              <p>网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。</p>
-<h1 id="eBPF-概述"><a href="#eBPF-概述" class="headerlink" title="eBPF 概述"></a>eBPF 概述</h1><p>eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需求。内核能够获取系统运行的第一手数据，而用户态进程对数据的处理则是高度定制化的。如果将大量数据从内核拷贝到用户空间由进程处理，会带来很大开销；而用户对数据的处理需求又无穷无尽，不可能由内核提供稳定的接口来满足。我们可能会想到根据自己的需求修改内核代码，定制专门的内核模块；然而，每次修改后都需要重新编译、分发、部署内核的代价是巨大的，而且对内核的修改容易带来安全和稳定性方面的问题。</p>
-<p>在内核中，eBPF 扮演的角色实质上等同于浏览器中的 js——一个在线的通用执行引擎。在 eBPF 的帮助下，我们可以在用户态编写代码，并将编译后得到的 BPF 字节码注入内核，挂载到指定的位置，并在触发后由内核提供的 BPF 虚拟机沙箱运行。</p>
-<div class="note note-info">
-            <p>实际上在内核中植入一个通用执行引擎的最大好处应该就是大大减少了数据的拷贝量，毕竟在用户态编程更自由。</p>
-          </div>
-<h1 id="kprobes-和-tracepoint"><a href="#kprobes-和-tracepoint" class="headerlink" title="kprobes 和 tracepoint"></a>kprobes 和 tracepoint</h1><p>就像 debugger 可以给程序的任意指令地址插入断点，插桩技术可以跟踪运行中的程序（或内核）并记录相关函数的信息、执行用户定义的操作。其中，kprobes（和 uprobes）为动态插桩，可以挂载到任意函数的入口和出口；tracepoint（和 USDT）是被硬编码到软件代码中静态插桩点，由软件开发者维护。</p>
-<p>显然，kprobes 更为灵活，但软件版本的修改可能导致对目标函数挂载的失效；tracepoint 由开发者维护，数量有限但更为稳定。因此，当条件允许时应优先使用 tracepoint，而非 kprobes。</p>
-<p>使用 kprobes 主要有三种接口：</p>
+              <p>数据在信道传输的过程中，要考虑两种情况：</p>
+<ul>
+<li>比特差错：分组能到达，但其中的比特可能受损；</li>
+<li>丢包：分组可能被整个丢失，完全不能到达；</li>
+</ul>
+<p>以下讨论中，我们暂且假设分组在发送方和接收方的信道中不会被重新排序，即发送方以 1，2 的顺序发包，接收方就不会在收到 2 之后才收到 1（如果先收到 2 说明 1 一定发生了丢包）。</p>
+<h1 id="针对比特差错的考虑"><a href="#针对比特差错的考虑" class="headerlink" title="针对比特差错的考虑"></a>针对比特差错的考虑</h1><p>先考虑信道只出现比特差错的情况。为处理这种情况，引入 ARQ（Automatic Repeat reQuest）协议的概念，即发送方根据接收方的 ACK 和 NAK 反馈信息判断是否需要重传分组。ARQ 需要三种功能支持：</p>
 <ol>
-<li>利用 kprobes api 编写内核模块，然后加载该模块；</li>
-<li>基于 ftrace，向特定文件写入字符串来开启 kprobes；</li>
-<li>利用 <code>perf_event_open</code> 系统调用，基于 <code>perf_event</code> 机制；</li>
+<li>差错检测：通过差错检测和纠错技术判断分组的比特是否受损；</li>
+<li>接收方反馈：接收方检查分组，未受损恢复 ACK，反之回复 NAK；</li>
+<li>重传：接收方收到 NAK 或是<strong>受损的反馈分组</strong>都选择重传该分组；</li>
 </ol>
-<p>其中第三种方式是当前 BPF 前端常用的挂载方式。</p>
-<div class="note note-info">
-            <p>kprobes 是通过在线修改内核指令段实现的，即保存待插桩地址的指令，将其覆盖为中断或 jmp 指令，并执行 kprobe 处理函数。当使用 uprobes 对用户态库函数（如 <code>malloc</code> 或是 <code>gethostbyname</code>）进行追踪时，现有的方案还需要通过中断等技术进行内核的往返。</p>
-          </div>
-<h1 id="ftrace-和-perf"><a href="#ftrace-和-perf" class="headerlink" title="ftrace 和 perf"></a>ftrace 和 perf</h1><p>在 eBPF 之前，基于 kprobes 和 tracepoint 的监测工具已经有很多。其中，有利用内核 tracepoint 的 ftrace，还有基于内核的 <code>perf_event</code> 而能够对 tracepoint、kprobes/uprobes 和 PMU 等多种事件进行数据统计的 perf, 以及基于自己开发的内核模块的 SystemTap 等等。</p>
-<p>然而，尽管有着如此多的性能监测工具，eBPF 却是唯一一个能够<strong>在内核态执行用户自定义逻辑</strong>（如 perf 在内核态只有简单计数功能），且稳定置于 Linux 内核的结构（如 SystemTap 自行开发的内核模块在 REHL 发行版之外的 Linux 上被证明不太可靠）。</p>
-<h1 id="eBPF-前端"><a href="#eBPF-前端" class="headerlink" title="eBPF 前端"></a>eBPF 前端</h1><p>目前 eBPF 最广泛使用的前端应当是 bcc 和 bpftrace，这二者都提供了 BPF 编程的高级语言。这里我们并不关注编程的细节，而是大致分析 BPF 程序生效的流程。</p>
-<p>我们往往希望基于事件编写 BPF 程序，而事件源可以是 kprobes、tracepoint 等。在 BPF 的早期，它只用来进行数据包的过滤，对多种事件源的支持是后来加入的特性。现在常用的前端往往基于这样一个流程实现 BPF 编程（以基于 kprobes 的 BPF 程序为例）：</p>
-<ol>
-<li>编写 BPF 程序，并编译为 BPF 字节码；</li>
-<li>通过命令为 <code>BPF_PROG_LOAD</code> 的 <code>bpf</code> 系统调用，将 BPF 程序交给内核，由内核负责合法性检验和可能的 JIT 编译等工作，最终获取一个与该 BPF 程序相关联的文件描述符；</li>
-<li>通过 <code>perf_event_open</code> 系统调用获取一个 kprobes 类型的 <code>perf_event</code> 相关联的文件描述符；</li>
-<li>通过 <code>ioctl</code> 函数将 BPF 程序的文件描述符关联到 <code>perf_event</code> 的文件描述符上；</li>
-</ol>
-<p>总结：基于 <code>bpf</code> 系统调用将 BPF 程序注入内核，然后基于 <code>perf_event_open</code> 系统调用和 <code>ioctl</code> 将 BPF 程序挂载到 kprobes 类型的 <code>perf_event</code>。</p>
-<div class="note note-info">
-            <p>将 BPF 程序挂载到 kprobes 上只是 Linux perf 子系统中一个小小的功能。然而，perf 提供的其他功能并没有 BPF 独有的内核可编程性。</p>
-          </div>
+<p>由于任何追加信息的传输都要考虑受损，当 ACK 或 NAK 受损时，选择直接重传分组是明智的选择，但接收方因此需要判断自己收到的分组是否是上一个的重传。为此，给每个分组标上序号来辅助判断。在处理好当前分组再考虑下一个的“单周期”模式中，序号对 2 取模，只通过 0，1 判断是否为上一个包的重复即可。</p>
+<p>事实上，我们可以让接收方在收到受损数据包时不回复 NAK，而是回复对上一个包的 ACK，这样也能告知发送方应当重传受损的数据包。于是，我们实现了一个无 NAK 的可靠数据传输协议。</p>
+<h1 id="针对丢包的考虑"><a href="#针对丢包的考虑" class="headerlink" title="针对丢包的考虑"></a>针对丢包的考虑</h1><p>如果信道还会发生丢包，那么上述协议就会出现某一方一直等待已丢失分组的情况。</p>
+<p>如果让发送方来负责丢包的检测和处理，重传就是一种万能灵药。发送方可以在每一个数据包发送后设定一个定时器，在规定时间内没有收到 ACK 则直接选择重传。</p>
+<p>接收方在收到重复的数据包之后，只需要照常回复 ACK 即可。</p>
+<h1 id="流水线可靠数据传输协议"><a href="#流水线可靠数据传输协议" class="headerlink" title="流水线可靠数据传输协议"></a>流水线可靠数据传输协议</h1><p>在上面的讨论中，我们采用的思路是“处理完当前的包再发送下一个”。这种模式会导致 RTT 远大于将数据送入链路的时间，使得信道的利用率非常低下。因此，我们引入流水线的思想，即一次性写入多个分组，并为每个分组处理丢失、损失和延时过大等情况。</p>
+<h2 id="回退-N-步（GBN）"><a href="#回退-N-步（GBN）" class="headerlink" title="回退 N 步（GBN）"></a>回退 N 步（GBN）</h2><p>在这个协议中，我们给发送方引入一个长为 N 的环状区间，发送报文的序号就在这个区间之中。区间中有一分界线，左侧是已发送但未收到 ACK 的序号，右侧是未使用的序号。</p>
+<p>当上层需要发送报文时，若分界线右侧仍有未使用序号，则用该序号发送报文；若发送方收到 ACK，则区间应向右滑动一次。</p>
+<blockquote>
+<p>基于前面的底层信道有序假设，我们可以让接收方在收到预期之外的数据包时重复对上个正确接收包的 ACK 并丢失该数据包，所以发送方可以保证窗口滑动过程中包的 ACK 是按序收到的。</p>
+</blockquote>
+<p>发送方仍然保持一个定时器，这个定时器会跟踪当前区间最左侧未收到 ACK 的已发送包；若该包已超时，考虑到接收方会把后续的包丢掉，所以发送方会将窗口分界线左侧的包全部重发，即“回退 N 步”。</p>
+<h2 id="选择重传（SR）"><a href="#选择重传（SR）" class="headerlink" title="选择重传（SR）"></a>选择重传（SR）</h2><p>一个包的丢失或差错导致所有包的重复传输代价有些高，所以我们基于 GBN 的滑动窗口模型提出选择重传的协议。</p>
+<p>在这个协议中，接收方也引入一个滑动窗口用于统计包的接收情况。此时接收方不会丢弃失序到达的数据包，而是在窗口中将其缓存，直到窗口左侧有连续的有序分组再将它们统一交付（并滑动窗口）；现在发送方会为每个包设置一个定时器，并分别判断它们是否需要重传。</p>
+<p>在这种情况下，ACK 不是有序到达的，接收方和发送方的窗口滑动也需要协调。假如接收方收到了窗口左侧的数据包，说明之前发送的 ACK 已经丢失，发送方选择了重传，这时候接收方必须重新发送 ACK 才能保证发送方的窗口能正常向右滑动。</p>
+<p>另一个问题有关滑动窗口和序号空间的大小。考虑序号空间为 8，窗口大小为 5：当发送方和接收方窗口均处于 $2,3,4,5,6$ 时，发送方连续发送这五个序号的包，在极端情况下，接收方回复的 5 个 ACK 全部丢失，此时的窗口变为：</p>
+<ul>
+<li>发送方：$2,3,4,5,6$</li>
+<li>接收方：$7,0,1,2,3$</li>
+</ul>
+<p>现在发送方把序号 2 重传时，接收方会认为这是一个新的包，从而造成误解。因此，SR 协议接收方的<strong>窗口大小必须小于等于序号空间的一半</strong>。</p>
+
               
             </div>
             <hr/>
@@ -305,15 +307,8 @@
     
       <span class="category-chain">
         
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
+  <a href="/categories/Network/" class="category-chain-item">Network</a>
   
-  
-    <span>></span>
-    
-  <a href="/categories/OS/Kernel/" class="category-chain-item">Kernel</a>
-  
-  
-
   
 
       </span>
@@ -332,8 +327,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>eBPF 原理与应用纪要</div>
-      <div>https://ch3chohch3.github.io/2023/03/10/eBPF_summary/</div>
+      <div>TCP 上篇：可靠数据传输原理</div>
+      <div>https://ch3chohch3.github.io/2023/03/12/tcp/</div>
     </div>
     <div class="license-meta">
       
@@ -345,7 +340,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2023年3月10日</div>
+          <div>2023年3月12日</div>
         </div>
       
       
@@ -375,18 +370,12 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2023/03/12/tcp/" title="TCP 上篇：可靠数据传输原理">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">TCP 上篇：可靠数据传输原理</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2023/02/28/mit6s081_2020_labs/" title="MIT 6.S081 2020 xv6 labs">
-                        <span class="hidden-mobile">MIT 6.S081 2020 xv6 labs</span>
+                      <a href="/2023/03/10/eBPF_summary/" title="eBPF 原理与应用纪要">
+                        <span class="hidden-mobile">eBPF 原理与应用纪要</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -440,6 +429,12 @@
 
 
   
+
+
+  
+  
+
+
 
 
 
@@ -672,6 +667,44 @@
 
 
   <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        MathJax = {
+          tex    : {
+            inlineMath: { '[+]': [['$', '$']] }
+          },
+          loader : {
+            load: ['ui/lazy']
+          },
+          options: {
+            renderActions: {
+              findScript    : [10, doc => {
+                document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+                  const display = !!node.type.match(/; *mode=display/);
+                  const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                  const text = document.createTextNode('');
+                  node.parentNode.replaceChild(text, node);
+                  math.start = { node: text, delim: '', n: 0 };
+                  math.end = { node: text, delim: '', n: 0 };
+                  doc.math.push(math);
+                });
+              }, '', false],
+              insertedScript: [200, () => {
+                document.querySelectorAll('mjx-container').forEach(node => {
+                  let target = node.parentNode;
+                  if (target.nodeName.toLowerCase() === 'li') {
+                    target.parentNode.classList.add('has-jax');
+                  }
+                });
+              }, '', false]
+            }
+          }
+        };
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.1/es5/tex-mml-chtml.js" ></script>
 
   <script  src="/js/local-search.js" ></script>
 
