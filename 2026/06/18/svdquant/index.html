@@ -16,21 +16,25 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础群设$G$是一个具有代数运算$\circ$的非空集合，满足：  结合律：$\forall a,b,c\in G$，有$(a\c">
+    <meta name="description" content="最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。 首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。 Smooth Q">
 <meta property="og:type" content="article">
-<meta property="og:title" content="ELGamal算法及其原根的求取">
-<meta property="og:url" content="https://ch3chohch3.github.io/2022/11/15/elgamal/index.html">
+<meta property="og:title" content="从 Smooth Quant 到 SVD Quant">
+<meta property="og:url" content="https://ch3chohch3.github.io/2026/06/18/svdquant/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础群设$G$是一个具有代数运算$\circ$的非空集合，满足：  结合律：$\forall a,b,c\in G$，有$(a\c">
+<meta property="og:description" content="最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。 首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。 Smooth Q">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2022-11-15T11:35:00.000Z">
+<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/smoothquant.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/svdquant0.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/svdquant1.png">
+<meta property="article:published_time" content="2026-06-18T10:45:00.000Z">
 <meta property="article:modified_time" content="2026-08-18T14:36:38.764Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/smoothquant.png">
   
   
   
-  <title>ELGamal算法及其原根的求取 - CH3CHOHCH3&#39;s blog</title>
+  <title>从 Smooth Quant 到 SVD Quant - CH3CHOHCH3&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -181,7 +185,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="ELGamal算法及其原根的求取"></span>
+            <span id="subtitle" data-typed-text="从 Smooth Quant 到 SVD Quant"></span>
           
         </div>
 
@@ -192,8 +196,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2022-11-15 19:35" pubdate>
-          2022年11月15日 晚上
+        <time datetime="2026-06-18 18:45" pubdate>
+          2026年6月18日 晚上
         </time>
       </span>
     
@@ -204,7 +208,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1k 字
+          2k 字
         
       </span>
     
@@ -215,7 +219,7 @@
         
         
         
-          9 分钟
+          17 分钟
         
       </span>
     
@@ -253,62 +257,60 @@
         <div id="board">
           <article class="post-content mx-auto">
             <!-- SEO header -->
-            <h1 style="display: none">ELGamal算法及其原根的求取</h1>
+            <h1 style="display: none">从 Smooth Quant 到 SVD Quant</h1>
             
             <div class="markdown-body">
               
-              <p>ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。</p>
-<h1 id="数学基础"><a href="#数学基础" class="headerlink" title="数学基础"></a>数学基础</h1><h2 id="群"><a href="#群" class="headerlink" title="群"></a>群</h2><p>设$G$是一个具有代数运算$\circ$的非空集合，满足：</p>
-<ul>
-<li>结合律：$\forall a,b,c\in G$，有$(a\circ b)\circ c=a\circ(b\circ c)$；</li>
-<li>单位元：$\exists e\in G$，满足$\forall a\in G,e\circ a=a\circ e=a$；</li>
-<li>逆元：$\forall a\in G$，存在$a^{-1}\in G,a\circ a^{-1}=a^{-1}\circ a=e$；</li>
-</ul>
-<p>称$G$关于$\circ$构成一个<strong>群</strong>（group）。满足交换律的群称为交换群（阿贝尔群）。根据元素是否有限，群分为有限群和无限群；有限群$G$中的元素个数称为群的<strong>阶</strong>，记为$|G|$。</p>
-<p>在模$m$的<a href="https://ch3chohch3.github.io/2022/10/20/rsa/#%E7%AE%80%E5%8C%96%E5%89%A9%E4%BD%99%E7%B3%BB">简化剩余系</a>中，考虑模$m$意义下的乘法运算；乘法满足结合律，$1$是单位元，且由扩展欧几里得算法每个元素都有模$m$意义下的乘法逆元。因此，模$m$的简化剩余系关于模$m$意义下的乘法构成一个群，记作$Z_m^\ast$。</p>
-<h2 id="循环群"><a href="#循环群" class="headerlink" title="循环群"></a>循环群</h2><p>在群上定义幂运算，即$a^n=a\circ a\circ…\circ a$（共$n$个$a$），同时规定：</p>
-<ul>
-<li>$a^0=e$</li>
-<li>$a^{-n}=(a^{-1})^n$</li>
-</ul>
-<p>对于群中的元素$a$，其阶$|a|$指的是使$a^m=e$成立的最小正整数$m$。若群$G$中存在元素$a$，使得$G$中所有元素都能由$a$的幂表示，则称$G$为<strong>循环群</strong>，元素$a$为$G$的生成元，记作$G=\langle a\rangle$。</p>
-<h2 id="原根"><a href="#原根" class="headerlink" title="原根"></a>原根</h2><p>设$gcd(a,m)=1$，若使$a^d\equiv 1\pmod m$成立的最小正整数$d=\varphi(m)$，则称$a$是模$m$的<strong>原根</strong>。藉由原根的概念，我们来证明当$m$有原根时，<strong>模$m$的简化剩余系乘群是一个循环群，其生成元为$m$的原根</strong>。</p>
-<p>显然$|Z_m^\ast|=\varphi(m)$，考虑$m$的一个原根$a\in Z_m^\ast$，若要证明$Z_m^\ast$是以$a$为生成元的循环群，则只需证</p>
-<script type="math/tex; mode=display">a^0,a^1,...,a^{\varphi(m)-1}</script><p>在模$m$意义下两两不同。设正整数$x,y$满足</p>
-<script type="math/tex; mode=display">0\leq x<y\leq\varphi(m)-1,</script><p>若</p>
-<script type="math/tex; mode=display">a^x\equiv a^y\pmod m,</script><p>则有$a^{y-x}\equiv1\pmod m$，易知$0&lt;y-x&lt;\varphi(m)$，这与$a$是模$m$的原根矛盾，因此</p>
-<script type="math/tex; mode=display">a^0,a^1,...,a^{\varphi(m)-1}</script><p>在模$m$意义下两两不同。反之，这也证明$Z_m^\ast$中不是$m$原根的元素一定不是生成元。</p>
+              <p>最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。</p>
+<p>首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。</p>
+<h1 id="Smooth-Quant（W8A8）"><a href="#Smooth-Quant（W8A8）" class="headerlink" title="Smooth Quant（W8A8）"></a>Smooth Quant（W8A8）</h1><p>Smooth Quant 可以看作是 SVDQuant 的科技树前置，它本身是对静态量化方案的一种改进。</p>
+<p>W8A8 面临的主要问题是激活的 outlier 带来的精度损失，一个离群值会导致 block 内的其他正常值全部被映射到 zero point 附近，从而失去彼此之间的差异。Smooth Quant 的提出者统计了激活的 outlier 分布，他们发现离群值的分布并不是随机的，而是固定在少数几个 channel 中：</p>
+<div style="text-align:center">
+<img src="../img/svdquant/smoothquant.png" srcset="/img/loading.gif" lazyload>
+</div>
+
+<p>基于这一现象，他们进一步提出，可以给激活的每个 channel 寻找一个缩放因子，然后通过下面的运算把 outlier 带来的影响转移到权重中：</p>
+<script type="math/tex; mode=display">
+Y=(X\cdot \mathrm{diag}(s)^{-1})\cdot (\mathrm{diag}(s)\cdot W)=\hat{X}\hat{W}</script><p>其中第 j 个 channel 的缩放因子通过下面的公式计算得到：</p>
+<script type="math/tex; mode=display">
+s_j=\frac{\max{(|X_j|)}^{\alpha}}{\max{(|W_j|)}^{1-\alpha}}</script><p>$\alpha$ 是一个超参，用来分配 W 和 A 之间的量化难度，论文中提到：</p>
 <blockquote>
-<p>上面我们证明了$Z_m^\ast$的生成元和$m$的原根是一一对应的关系，与此同时，我们还容易证明有限循环群$G$生成元的个数为$\varphi(|G|)$，进而可以得到$m$原根的个数恰为$\varphi(\varphi(m))$。另外，并非所有正整数都有原根，只有当$m=2,4,p^n,2p^n$（$p$为奇素数，$n$为正整数）时，$m$才有原根。</p>
+<p>$\alpha=0.5$ is a general sweet spot for all the OPT and BLOOM models, and $\alpha=0.75$ for GLM-130B since its activations are more difficult to quantize.</p>
 </blockquote>
-<h2 id="离散对数问题"><a href="#离散对数问题" class="headerlink" title="离散对数问题"></a>离散对数问题</h2><p>设$G=\langle a\rangle$，群$G$中的离散对数问题是指：给定$G$中元素$h$，找到正整数$k$满足</p>
+<h1 id="SVDQuant（W4A4）"><a href="#SVDQuant（W4A4）" class="headerlink" title="SVDQuant（W4A4）"></a>SVDQuant（W4A4）</h1><p>Smooth Quant 本质是把激活的 outlier 影响部分转移到权重侧承担，这种方案在 W8A8 的场景下被证实是有效的。</p>
+<p>当量化推进到 4 bit 领域后，权重和激活的表示范围都只有 16 个值，此时权重也无法再承担激活的 outlier，于是 Smooth Quant 的提出者另辟蹊径，又提出了基于 SVD 分解的量化方案。</p>
+<h2 id="SVD-分解"><a href="#SVD-分解" class="headerlink" title="SVD 分解"></a>SVD 分解</h2><p>SVD（Singular Value Decomposition，奇异值分解）本身是线性代数中的一种运算。我们知道任意矩阵 $A\in\R^{M\times N}$ 都可以写成如下形式：</p>
 <script type="math/tex; mode=display">
-h=a^k.</script><p>我们把$k$称为$h$相对于生成元的离散对数，记作</p>
+\begin{align*}
+A&=U\Sigma V^T \\
+&=\sum\sigma_iu_iv_i^T
+\end{align*}</script><p>其中：</p>
+<ul>
+<li>$U\in\R^{M\times M}$ 是 $AA^T$ 的特征向量构成的正交矩阵；</li>
+<li>$V\in\R^{N\times N}$ 是 $A^TA$ 的特征向量构成的正交矩阵；</li>
+<li>$\Sigma\in\R^{M\times N}$ 对角线上的元素称为奇异值，从大到小排列，其余元素为 0。奇异值是 $AA^T$ 特征值的平方根；</li>
+</ul>
+<p>SVD 分解可以把一个矩阵拆分成若干秩为 1 的矩阵之和，这种思想本质上类似于傅里叶变换。</p>
+<p>低秩矩阵的奇异值谱会出现快速的下降，所以可以通过 SVD 截断对这种矩阵进行压缩。</p>
+<h2 id="量化方案"><a href="#量化方案" class="headerlink" title="量化方案"></a>量化方案</h2><p>还是基于前面提到的经验事实：激活的 outlier 会集中分布在几个 channel 中。</p>
+<p>SVDQuant 的第一步是利用 Smooth Quant 中的方案将激活的 outlier 全部抹平到权重，这会让激活变得易于量化，但会让权重中的特定列被明显放大。</p>
+<p>接下来对已被缩放因子影响的权重做 SVD 分解。由于权重的特定列已被放大（变得低秩），所以可以做 SVD 截断将其分为低秩分支（论文中默认截断前 32 个 rank）和残差：</p>
 <script type="math/tex; mode=display">
-k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散对数的问题是一个困难问题；如同 RSA 中蕴含的困难问题是大数质因数分解，ELGamal 的安全性基于离散对数的求解难题。</p>
-<h1 id="算法流程"><a href="#算法流程" class="headerlink" title="算法流程"></a>算法流程</h1><h2 id="密钥生成"><a href="#密钥生成" class="headerlink" title="密钥生成"></a>密钥生成</h2><ol>
-<li>取一个较大素数$p$；</li>
-<li>求$Z_p^\ast$的一个生成元$g$；</li>
-<li>任取$1&lt;\alpha&lt;p-1$，计算$\beta=g^\alpha\bmod p$；</li>
-</ol>
-<p>其中$(p,g,\beta)$作为公钥，$\alpha$作为私钥。</p>
-<h2 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h2><ol>
-<li>给定待加密信息$x$，选择随机整数$1&lt;k&lt;p-1$；</li>
-<li>计算$E(x,k)=(r,s)$，其中$r=g^k\bmod p$，$s=x\beta^k\bmod p$；</li>
-</ol>
-<p>$(r,s)$就是加密完成后的信息。</p>
-<h2 id="解密"><a href="#解密" class="headerlink" title="解密"></a>解密</h2><ol>
-<li>收到信息$(r,s)$；</li>
-<li>计算$D(r,s)=sr^{-\alpha}\bmod p=xg^{\alpha k}g^{-\alpha k}\bmod p=x$；</li>
-</ol>
-<p>这样就得到明文$x$。</p>
-<h1 id="原根的求取"><a href="#原根的求取" class="headerlink" title="原根的求取"></a>原根的求取</h1><p>在实际使用 ELGamal 加密时，一个难点在于如何获取较大素数的原根。我们知道有限群中任意元素的阶整除群的阶，那么对于$Z_p^\ast$而言，所有元素的阶都是$\varphi(p)=p-1$的因数。这为我们提供了一种方法：</p>
-<ol>
-<li>随机生成大质数$q$，直到$p=2q+1$也是质数；</li>
-<li>随机选取$1&lt;g&lt;p-1$，那么$g$的阶必然是$p-1=2q$的因数，即$g$的阶只有$2,q,2q$三种可能。</li>
-<li>若$g^2\equiv1\pmod p$或$g^q\equiv1\pmod p$，说明$g$不是$p$的原根，否则$g$即为求得的一个原根。</li>
-</ol>
-<p>随机选取$g$的形式虽然看起来时间开销无法保障，但是对于$p=2q+1$而言，其原根的个数有$\varphi(\varphi(p))=q-1$之多，即每次随机选取有$\frac{1}{2}$的概率选取到原根，所以实际上不会花费很多时间。</p>
+\hat{W}=L_1L_2+R</script><p>“特定列被放大”这件事可以让残差 $R$ 中的 outlier 更少、更小，这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 这种方案就能够 work。</p>
+<div style="text-align:center">
+<img src="../img/svdquant/svdquant0.png" srcset="/img/loading.gif" lazyload>
+</div>
+
+<p>从下图中可以看到，经过处理的激活和残差中 outlier 都明显变少、变小，利于量化：</p>
+<div style="text-align:center">
+<img src="../img/svdquant/svdquant1.png" srcset="/img/loading.gif" lazyload>
+</div>
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>Smooth Quant 和 SVD Quant 都是面向激活量化的算法，而激活量化本身对于 compute bound 的模型来说是非常重要的一环。从硬件发展趋势的角度来看，4 bit 量化大概会渐渐成为主流方案，所以 SVD Quant 还是很有必要被好好实现、改进的。</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2211.10438">SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2411.05007">SVDQuant: Absorbing Outliers by Low-Rank Components for 4-Bit Diffusion Models</a></li>
+</ul>
 
               
             </div>
@@ -326,12 +328,12 @@ k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散�
     
       <span class="category-chain">
         
-  <a href="/categories/%E6%95%B0%E5%AD%A6/" class="category-chain-item">数学</a>
+  <a href="/categories/AI-Infra/" class="category-chain-item">AI Infra</a>
   
   
     <span>></span>
     
-  <a href="/categories/%E6%95%B0%E5%AD%A6/%E5%AF%86%E7%A0%81%E5%AD%A6/" class="category-chain-item">密码学</a>
+  <a href="/categories/AI-Infra/%E9%87%8F%E5%8C%96/" class="category-chain-item">量化</a>
   
   
 
@@ -353,8 +355,8 @@ k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散�
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>ELGamal算法及其原根的求取</div>
-      <div>https://ch3chohch3.github.io/2022/11/15/elgamal/</div>
+      <div>从 Smooth Quant 到 SVD Quant</div>
+      <div>https://ch3chohch3.github.io/2026/06/18/svdquant/</div>
     </div>
     <div class="license-meta">
       
@@ -366,7 +368,7 @@ k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散�
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2022年11月15日</div>
+          <div>2026年6月18日</div>
         </div>
       
       
@@ -396,18 +398,12 @@ k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散�
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2026/06/18/svdquant/" title="从 Smooth Quant 到 SVD Quant">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">从 Smooth Quant 到 SVD Quant</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2022/10/20/rsa/" title="RSA算法介绍">
-                        <span class="hidden-mobile">RSA算法介绍</span>
+                      <a href="/2022/11/15/elgamal/" title="ELGamal算法及其原根的求取">
+                        <span class="hidden-mobile">ELGamal算法及其原根的求取</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
