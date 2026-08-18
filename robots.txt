@@ -10,4 +10,3 @@ Allow: /about/
 # Disallow: /fancybox/
 
 Sitemap: https://ch3chohch3.github.io/sitemap.xml
-

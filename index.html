@@ -209,297 +209,6 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
-        <a href="/2023/03/12/tcp/" target="_self">
-          TCP 上篇：可靠数据传输原理
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/03/12/tcp/" target="_self">
-        <div>
-          数据在信道传输的过程中，要考虑两种情况：  比特差错：分组能到达，但其中的比特可能受损； 丢包：分组可能被整个丢失，完全不能到达；  以下讨论中，我们暂且假设分组在发送方和接收方的信道中不会被重新排序，即发送方以 1，2 的顺序发包，接收方就不会在收到 2 之后才收到 1（如果先收到 2 说明 1 一定发生了丢包）。 针对比特差错的考虑先考虑信道只出现比特差错的情况。为处理这种情况，引入 ARQ（
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-03-12 22:57" pubdate>
-              2023-03-12
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/Network/" class="category-chain-item">Network</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2023/03/10/eBPF_summary/" target="_self">
-          eBPF 原理与应用纪要
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/03/10/eBPF_summary/" target="_self">
-        <div>
-          网上有很多关于 eBPF 的资料，但是大多数还是“内核中的虚拟机，挂载到 kprobes”之类的车轱辘话，并没有解决初学 eBPF 的几个疑点。在这里记录一下 eBPF 出现的逻辑、eBPF 相较于 perf 等内核监测工具的区别以及当前 eBPF 前端常用的挂载流程这三个问题。 eBPF 概述eBPF（extended Berkeley Packet Filter）在本质上迎合了定制内核功能的需
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-03-10 22:57" pubdate>
-              2023-03-10
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/OS/Kernel/" class="category-chain-item">Kernel</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2023/02/28/mit6s081_2020_labs/" target="_self">
-          MIT 6.S081 2020 xv6 labs
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/02/28/mit6s081_2020_labs/" target="_self">
-        <div>
-          20 年的 xv6 实验和 21 年主要有两个不同：  20 年多了一个 sbrk 的 Lazy allocation； 20 年的页表实验和 21 年有很大不同，难度较高；               代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2020问答题直接看对应的 answers-lab.txt 即可。            Lab3 Page t
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-02-28 21:58" pubdate>
-              2023-02-28
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2023/02/22/mit6s081_2021_labs/" target="_self">
-          MIT 6.S081 2021 xv6 labs
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/02/22/mit6s081_2021_labs/" target="_self">
-        <div>
-          汇总一下 2021 年度 MIT 6.S081 的 10 个实验。              代码：https:&#x2F;&#x2F;github.com&#x2F;CH3CHOHCH3&#x2F;xv6-labs-2021问答题直接看对应的 answers-lab.txt 即可。            Lab1 Utilities通过系统调用实现五个功能。 sleep用 atoi 把字符串转为数字，直接调用 sleep 即可。 pi
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-02-22 21:58" pubdate>
-              2023-02-22
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2022/11/16/top_down_parser/" target="_self">
-          自顶向下的语法分析
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2022/11/16/top_down_parser/" target="_self">
-        <div>
-          自顶向下分析试图从初始符号开始，给出目标句子的一个推导。 递归下降分析法递归下降分析的实现递归下降分析法从直观上是很好理解的，以如下文法为例：  $E\rightarrow T|T+E$ $T\rightarrow int|int\ast T|(E)$  定义全局指针 next 指向下一个待读入的 token，以及函数 term 来判断该 token 是否为指定类型终结符：123bool term
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-11-16 22:40" pubdate>
-              2022-11-16
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86/" class="category-chain-item">编译原理</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
         <a href="/2022/11/15/elgamal/" target="_self">
           ELGamal算法及其原根的求取
         </a>
@@ -569,7 +278,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2022/10/20/rsa/" target="_self">
         <div>
-          非对称密码（公钥密码）体系非对称密码体系是 1976 年被正式提出的概念，弥补了对称密码的一些缺陷。 其基本方案是：用户生成公钥 $pub$ 和私钥 $pri$，公钥向他人公开并用于信息加密，私钥由本人保管并用于信息解密。 RSA 是 1977 年被提出的公钥密码算法，其核心原理是数论中的欧拉定理，被广泛用于互联网的方方面面（包括 ssh，https 等关键设施）。在量子 计算机还未成熟的今天，R
+          非对称密码（公钥密码）体系非对称密码体系是 1976 年被正式提出的概念，弥补了对称密码的一些缺陷。 其基本方案是：用户生成公钥 $pub$ 和私钥 $pri$，公钥向他人公开并用于信息加密，私钥由本人保管并用于信息解密。 RSA 是 1977 年被提出的公钥密码算法，其核心原理是数论中的欧拉定理，被广泛用于互联网的方方面面（包括 ssh，https 等关键设施）。在量子计算机还未成熟的今天，RS
         </div>
       </a>
 
@@ -622,130 +331,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
-        <a href="/2022/08/31/xv6_itrpt/" target="_self">
-          xv6 驱动和中断——输入输出
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2022/08/31/xv6_itrpt/" target="_self">
-        <div>
-          在 xv6 启动时，shell 会向屏幕打印 $ 表示等待用户输入；当用户从键盘输入 ls 时，屏幕会显示这两个字符。在这些设备工作的过程中，xv6 内核究竟扮演了什么角色，又是如何实现的呢？ 设备驱动设备驱动是内核中的代码，用于管理特定硬件设备。驱动通常分为 top 和 bottom 两部分：top 通常是内核希望与设备沟通时调用的，而 bottom 则是设备向内核发起中断时的处理程序。 当内核
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-08-31 19:36" pubdate>
-              2022-08-31
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/OS/" class="category-chain-item">OS</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/OS/MIT6-S081/" class="category-chain-item">MIT6.S081</a>
-  
-  
-
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2022/06/10/problem1/" target="_self">
-          2021年ICPC国际大学生程序设计竞赛-C
-        </a>
-      </h1>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2022/06/10/problem1/" target="_self">
-        <div>
-          原题链接：https:&#x2F;&#x2F;ac.nowcoder.com&#x2F;acm&#x2F;contest&#x2F;35232&#x2F;C 题意在区间 $[l,r]$ 内任意选取 $k$ 个数求最大公因数，问有多少种可能的结果。  $1\leq l\leq r\leq 10^{12},$ $2\leq k\leq r-l+1$  题解数学本质首先，显然有：  $(b-a)$ 是 $gcd(a,b)$ 的倍数。  由此可得：  $gcd(a
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-06-10 10:57" pubdate>
-              2022-06-10
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/ACM/" class="category-chain-item">ACM</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
         <a href="/2022/05/11/git_proxy/" target="_self">
-          git三种协议的代理配置
+          三种 git 协议的代理配置方法
         </a>
       </h1>
 
       
       <a class="index-excerpt index-excerpt__noimg" href="/2022/05/11/git_proxy/" target="_self">
         <div>
-          最近在安装 MIT6.S081 的实验环境时又受到了国内网络的制裁，这里浅浅记录一下如何配置 git 的代理。 所用的环境是 WSL2 的 Ubuntu-20.04.4 LTS，SSR 运行在 windows 的 12345 端口，打开了允许来自局域网的连接。 获取windows的ip众所周知，WSL2 会把 windows 的虚拟网卡 vEthernet 作为默认网关，所以我们需要的代理地址就是
+          环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ipWSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。
         </div>
       </a>
 
@@ -769,7 +363,7 @@
     
       <span class="category-chain">
         
-  <a href="/categories/%E5%BC%80%E5%8F%91%E5%AE%9E%E8%B7%B5/" class="category-chain-item">开发实践</a>
+  <a href="/categories/%E5%AE%9E%E8%B7%B5%E7%BB%8F%E9%AA%8C/" class="category-chain-item">实践经验</a>
   
   
 
@@ -786,12 +380,6 @@
   </div>
 
 
-
-  <nav aria-label="navigation">
-    <span class="pagination" id="pagination">
-      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
-    </span>
-  </nav>
 
 
 
@@ -839,7 +427,7 @@
     <div class="footer-inner">
   
     <div class="footer-content">
-      <p>Email-ybc20020730@gmail.com</p>
+      <p>email: ybc20020730@gmail.com</p>
     </div>
   
   
