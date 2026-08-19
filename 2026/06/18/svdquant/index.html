@@ -23,14 +23,14 @@
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
 <meta property="og:description" content="最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。 首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。 Smooth Q">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/smoothquant.png">
-<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/svdquant0.png">
-<meta property="og:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/svdquant1.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant0.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant1.png">
 <meta property="article:published_time" content="2026-06-18T10:45:00.000Z">
-<meta property="article:modified_time" content="2026-08-18T14:36:38.764Z">
+<meta property="article:modified_time" content="2026-08-19T03:09:03.971Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://ch3chohch3.github.io/2026/06/18/img/svdquant/smoothquant.png">
+<meta name="twitter:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
   
   
   
@@ -266,7 +266,7 @@
 <h1 id="Smooth-Quant（W8A8）"><a href="#Smooth-Quant（W8A8）" class="headerlink" title="Smooth Quant（W8A8）"></a>Smooth Quant（W8A8）</h1><p>Smooth Quant 可以看作是 SVDQuant 的科技树前置，它本身是对静态量化方案的一种改进。</p>
 <p>W8A8 面临的主要问题是激活的 outlier 带来的精度损失，一个离群值会导致 block 内的其他正常值全部被映射到 zero point 附近，从而失去彼此之间的差异。Smooth Quant 的提出者统计了激活的 outlier 分布，他们发现离群值的分布并不是随机的，而是固定在少数几个 channel 中：</p>
 <div style="text-align:center">
-<img src="../img/svdquant/smoothquant.png" srcset="/img/loading.gif" lazyload>
+<img src="/img/svdquant/smoothquant.png" srcset="/img/loading.gif" lazyload>
 </div>
 
 <p>基于这一现象，他们进一步提出，可以给激活的每个 channel 寻找一个缩放因子，然后通过下面的运算把 outlier 带来的影响转移到权重中：</p>
@@ -298,12 +298,12 @@ A&=U\Sigma V^T \\
 <script type="math/tex; mode=display">
 \hat{W}=L_1L_2+R</script><p>“特定列被放大”这件事可以让残差 $R$ 中的 outlier 更少、更小，这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 这种方案就能够 work。</p>
 <div style="text-align:center">
-<img src="../img/svdquant/svdquant0.png" srcset="/img/loading.gif" lazyload>
+<img src="/img/svdquant/svdquant0.png" srcset="/img/loading.gif" lazyload>
 </div>
 
 <p>从下图中可以看到，经过处理的激活和残差中 outlier 都明显变少、变小，利于量化：</p>
 <div style="text-align:center">
-<img src="../img/svdquant/svdquant1.png" srcset="/img/loading.gif" lazyload>
+<img src="/img/svdquant/svdquant1.png" srcset="/img/loading.gif" lazyload>
 </div>
 
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>Smooth Quant 和 SVD Quant 都是面向激活量化的算法，而激活量化本身对于 compute bound 的模型来说是非常重要的一环。从硬件发展趋势的角度来看，4 bit 量化大概会渐渐成为主流方案，所以 SVD Quant 还是很有必要被好好实现、改进的。</p>
