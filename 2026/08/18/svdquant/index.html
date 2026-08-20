@@ -19,15 +19,15 @@
     <meta name="description" content="最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。 首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。 Smooth Q">
 <meta property="og:type" content="article">
 <meta property="og:title" content="从 Smooth Quant 到 SVD Quant">
-<meta property="og:url" content="https://ch3chohch3.github.io/2026/06/18/svdquant/index.html">
+<meta property="og:url" content="https://ch3chohch3.github.io/2026/08/18/svdquant/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
 <meta property="og:description" content="最近在尝试给公司的 DiT 生图模型做推理加速的过程中，了解到 SVDQuant 这种较新的扩散模型量化方案，在此记录一下学习心得。 首先需要明确的是，LLM 由于瓶颈通常在于 decode 部分的权重搬运，所以只量化权重就能拿到性能收益；但 diffusion model 往往是 compute bound，想加速是绕不开激活量化的，同时对权重和激活进行量化会带来很多精度挑战。 Smooth Q">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant0.png">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant1.png">
-<meta property="article:published_time" content="2026-06-18T10:45:00.000Z">
-<meta property="article:modified_time" content="2026-08-20T08:16:37.673Z">
+<meta property="article:published_time" content="2026-08-18T10:45:00.000Z">
+<meta property="article:modified_time" content="2026-08-20T08:33:48.652Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
@@ -196,8 +196,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2026-06-18 18:45" pubdate>
-          2026年6月18日 晚上
+        <time datetime="2026-08-18 18:45" pubdate>
+          2026年8月18日 晚上
         </time>
       </span>
     
@@ -369,7 +369,7 @@ W&=L_1L_2+R\\
   <div class="license-box my-3">
     <div class="license-title">
       <div>从 Smooth Quant 到 SVD Quant</div>
-      <div>https://ch3chohch3.github.io/2026/06/18/svdquant/</div>
+      <div>https://ch3chohch3.github.io/2026/08/18/svdquant/</div>
     </div>
     <div class="license-meta">
       
@@ -381,7 +381,7 @@ W&=L_1L_2+R\\
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2026年6月18日</div>
+          <div>2026年8月18日</div>
         </div>
       
       
