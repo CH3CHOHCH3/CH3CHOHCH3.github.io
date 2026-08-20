@@ -27,7 +27,7 @@
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant0.png">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant1.png">
 <meta property="article:published_time" content="2026-06-18T10:45:00.000Z">
-<meta property="article:modified_time" content="2026-08-19T03:24:19.942Z">
+<meta property="article:modified_time" content="2026-08-20T08:16:37.673Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
@@ -208,7 +208,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          2k 字
+          2.4k 字
         
       </span>
     
@@ -219,7 +219,7 @@
         
         
         
-          17 分钟
+          21 分钟
         
       </span>
     
@@ -296,7 +296,13 @@ A&=U\Sigma V^T \\
 <p>SVDQuant 的第一步是利用 Smooth Quant 中的方案将激活的 outlier 全部抹平到权重，这会让激活变得易于量化，但会让权重中的特定列被明显放大。</p>
 <p>接下来对已被缩放因子影响的权重做 SVD 分解。由于权重的特定列已被放大（变得低秩），所以可以做 SVD 截断将其分为低秩分支（论文中默认截断前 32 个 rank）和残差：</p>
 <script type="math/tex; mode=display">
-\hat{W}=L_1L_2+R</script><p>“特定列被放大”这件事可以让残差 $R$ 中的 outlier 更少、更小，这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 这种方案就能够 work。</p>
+\begin{align*}
+W&=L_1L_2+R\\
+\mathrm{Quant}(W)&=L_1L_2+\mathrm{Quant}(R)
+\end{align*}</script><blockquote>
+<p>假设 $W$ 的维度是 <code>[hidden_size, hidden_size]</code>，那么 $L_1$ 的维度是 <code>[hidden_size, 32]</code>，$L_2$ 的维度是 <code>[32, hidden_size]</code>，对应前 32 个最大的奇异值。</p>
+</blockquote>
+<p>“特定列被放大”可以让残差 $R$ 中的 outlier 更少、更小，而这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 这种方案就能够 work。</p>
 <div style="text-align:center">
 <img src="/img/svdquant/svdquant0.png" srcset="/img/loading.gif" lazyload>
 </div>
@@ -306,10 +312,17 @@ A&=U\Sigma V^T \\
 <img src="/img/svdquant/svdquant1.png" srcset="/img/loading.gif" lazyload>
 </div>
 
+<p>再来看看量化后具体的计算方式，假设是 PTQ 方案：</p>
+<ol>
+<li>静态量化：量化权重用到的 scale/zero、smoothing factor、low-rank branch 都可以在离线校准阶段写入产物，不随推理过程更新；</li>
+<li>动态量化：量化激活所需的 scale/zero 一般是 per-tensor 在线计算；</li>
+<li>kernel fusion：low-rank branch 的参数量很小，但如果要和残差分开计算求和会导致 bf16 精度的激活需要反复从 HBM load，所以 nunchaku 的实现中是把 low-rank 和残差的计算做了 kernel fusion。</li>
+</ol>
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>Smooth Quant 和 SVD Quant 都是面向激活量化的算法，而激活量化本身对于 compute bound 的模型来说是非常重要的一环。从硬件发展趋势的角度来看，4 bit 量化大概会渐渐成为主流方案，所以 SVD Quant 还是很有必要被好好实现、改进的。</p>
 <h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ul>
 <li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2211.10438">SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</a></li>
 <li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2411.05007">SVDQuant: Absorbing Outliers by Low-Rank Components for 4-Bit Diffusion Models</a></li>
+<li><a target="_blank" rel="noopener" href="https://nunchaku.tech/docs/nunchaku/installation/installation.html">Nunchaku 1.3.0 documentation</a></li>
 </ul>
 
               
