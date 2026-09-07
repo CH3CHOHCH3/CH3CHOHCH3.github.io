@@ -27,7 +27,7 @@
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant0.png">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/svdquant/svdquant1.png">
 <meta property="article:published_time" content="2026-08-18T10:45:00.000Z">
-<meta property="article:modified_time" content="2026-08-20T08:33:48.652Z">
+<meta property="article:modified_time" content="2026-09-07T12:51:50.331Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ch3chohch3.github.io/img/svdquant/smoothquant.png">
@@ -208,7 +208,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          2.4k 字
+          3.3k 字
         
       </span>
     
@@ -219,7 +219,7 @@
         
         
         
-          21 分钟
+          28 分钟
         
       </span>
     
@@ -283,18 +283,29 @@ s_j=\frac{\max{(|X_j|)}^{\alpha}}{\max{(|W_j|)}^{1-\alpha}}</script><p>$\alpha$ 
 <script type="math/tex; mode=display">
 \begin{align*}
 A&=U\Sigma V^T \\
-&=\sum\sigma_iu_iv_i^T
+&=\sum_i\sigma_iu_iv_i^T
 \end{align*}</script><p>其中：</p>
 <ul>
 <li>$U\in\mathbb{R}^{M\times M}$ 是 $AA^T$ 的特征向量构成的正交矩阵；</li>
 <li>$V\in\mathbb{R}^{N\times N}$ 是 $A^TA$ 的特征向量构成的正交矩阵；</li>
 <li>$\Sigma\in\mathbb{R}^{M\times N}$ 对角线上的元素称为奇异值，从大到小排列，其余元素为 0。奇异值是 $AA^T$ 特征值的平方根；</li>
 </ul>
-<p>SVD 分解可以把一个矩阵拆分成若干秩为 1 的矩阵之和，这种思想本质上类似于傅里叶变换。</p>
-<p>低秩矩阵的奇异值谱会出现快速的下降，所以可以通过 SVD 截断对这种矩阵进行压缩。</p>
+<p>SVD 分解本质上是在说：一个线性变换 $A$ 可以被看作是在输入空间上的一组标准正交基 $V$ 的各个方向上做了一些缩放，然后再旋转到另一组输出空间上的标准正交基 $U$ 的方向上。由于 $A^TA$ 的特征向量 $v_i$ 满足</p>
+<script type="math/tex; mode=display">
+(Av_i)^T(Av_j)=v_i^TA^TAv_j=\lambda_jv_i^Tv_j=0</script><p>所以 $V$ 就是这样一组经过 $A$ 变换后依然正交的基。与此同时：</p>
+<script type="math/tex; mode=display">
+\begin{align*}
+A^TAv_i&=\lambda_i v_i\\
+AA^TAv_i&=\lambda_i Av_i\\
+\end{align*}</script><p>所以 $Av_i$ 是 $AA^T$ 的特征向量。这表明 $V$ 经过 $A$ 变换后得到的正交基和 $U$ 的方向正是一致的。考虑一个输入向量 $x\in\mathbb{R}^N$，SVD 下整个线性变换的计算流程为：</p>
+<ol>
+<li>分解：$V^Tx$ 求的是 $x$ 在 $V$ 这组正交基下的坐标表示；</li>
+<li>缩放：$\Sigma V^Tx$ 则是把上述坐标分别进行缩放，表示在基底各方向上的调制；</li>
+<li>合成：$U\Sigma V^Tx$ 中的 $U$ 也是正交基，所以这里的左乘表示将调制后的坐标旋转到目标基底的方向；</li>
+</ol>
 <h2 id="量化方案"><a href="#量化方案" class="headerlink" title="量化方案"></a>量化方案</h2><p>还是基于前面提到的经验事实：激活的 outlier 会集中分布在几个 channel 中。</p>
-<p>SVDQuant 的第一步是利用 Smooth Quant 中的方案将激活的 outlier 全部抹平到权重，这会让激活变得易于量化，但会让权重中的特定列被明显放大。</p>
-<p>接下来对已被缩放因子影响的权重做 SVD 分解。由于权重的特定列已被放大（变得低秩），所以可以做 SVD 截断将其分为低秩分支（论文中默认截断前 32 个 rank）和残差：</p>
+<p>SVDQuant 的第一步是利用 Smooth Quant 中的方案将激活的 outlier 全部抹平到权重，这会让激活变得更易于量化，但会让权重中的特定列被明显放大。</p>
+<p>接下来对已乘上 smooth factor 的权重做 SVD 分解。由于权重的特定列被放大，所以离群值会满足低秩结构，即离群值更集中于奇异值最大的前若干个 rank 中。此时对权重做 SVD 截断将其分为低秩分支（论文中默认截断前 32 个 rank）和残差：</p>
 <script type="math/tex; mode=display">
 \begin{align*}
 W&=L_1L_2+R\\
@@ -302,7 +313,7 @@ W&=L_1L_2+R\\
 \end{align*}</script><blockquote>
 <p>假设 $W$ 的维度是 <code>[hidden_size, hidden_size]</code>，那么 $L_1$ 的维度是 <code>[hidden_size, 32]</code>，$L_2$ 的维度是 <code>[32, hidden_size]</code>，对应前 32 个最大的奇异值。</p>
 </blockquote>
-<p>“特定列被放大”可以让残差 $R$ 中的 outlier 更少、更小，而这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 这种方案就能够 work。</p>
+<p>由于整列离群值更多被保留在高精度的低秩分支，残差 $R$ 中的 outlier 会更少、更小，而这正是量化最关心的问题。因此，对残差做 4 bit 量化，而低秩分支保持 16 bit 比直接量化权重整体的误差更小。</p>
 <div style="text-align:center">
 <img src="/img/svdquant/svdquant0.png" srcset="/img/loading.gif" lazyload>
 </div>
@@ -314,11 +325,18 @@ W&=L_1L_2+R\\
 
 <p>再来看看量化后具体的计算方式，假设是 PTQ 方案：</p>
 <ol>
-<li>静态量化：量化权重用到的 scale/zero、smoothing factor、low-rank branch 都可以在离线校准阶段写入产物，不随推理过程更新；</li>
-<li>动态量化：量化激活所需的 scale/zero 一般是 per-tensor 在线计算；</li>
+<li>静态量化：量化权重用到的 scale、smoothing factor、low-rank branch 都可以在离线校准阶段写入产物，不随推理过程更新；</li>
+<li>动态量化：量化激活所需的 scale 一般是 per-tensor 在线计算；</li>
 <li>kernel fusion：low-rank branch 的参数量很小，但如果要和残差分开计算求和会导致 bf16 精度的激活需要反复从 HBM load，所以 nunchaku 的实现中是把 low-rank 和残差的计算做了 kernel fusion。</li>
 </ol>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>Smooth Quant 和 SVD Quant 都是面向激活量化的算法，而激活量化本身对于 compute bound 的模型来说是非常重要的一环。从硬件发展趋势的角度来看，4 bit 量化大概会渐渐成为主流方案，所以 SVD Quant 还是很有必要被好好实现、改进的。</p>
+<h2 id="个人见解"><a href="#个人见解" class="headerlink" title="个人见解"></a>个人见解</h2><p>我认为 svdquant 的收益来源主要有两点，且都是 smooth 带来的：</p>
+<ol>
+<li>smooth 给权重带来的按列分布的离群值，在 SVD 分解后集中于低秩分支；</li>
+<li>smooth 导致权重 SVD 分解后的残差有更低的能量占比，导致更低的量化底噪；</li>
+</ol>
+<p>对于 INT4 这种 group 128 甚至 per tensor 的量化方案，smooth 能让激活和权重产生很大的变化。但在 nvfp4 这种 group 16 的两级 scale 方案中，smooth 能产生的影响是非常有限的，这会导致权重的离群值不能随低秩分支被剥离，且权重的奇异值谱不够陡峭，低秩分支的能量占比较低，二者叠加会导致 nvfp4 的 svdquant 收益相比裸的 nvfp4 并没有非常大的提升。</p>
+<p>在我的实际测试中，nvfp4 下 svdquant 的相对误差收益可能在 1.16-3 倍不等，而且主要取决于上述原因中的第二点，即收益明显跟 F-32 的能量占比强相关。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>Smooth Quant 和 SVD Quant 都是面向激活量化的算法，而激活量化本身对于 compute bound 的模型来说是非常重要的一环。这两个量化算法对 INT4 而言应该说算是必备方案，不过在 nvfp4 已经成熟的今天，svdquant 这个方案的误差收益和推理效率可能还需要更充分的权衡。</p>
 <h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ul>
 <li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2211.10438">SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</a></li>
 <li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2411.05007">SVDQuant: Absorbing Outliers by Low-Rank Components for 4-Bit Diffusion Models</a></li>
