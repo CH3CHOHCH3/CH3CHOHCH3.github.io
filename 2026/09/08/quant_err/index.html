@@ -24,7 +24,7 @@
 <meta property="og:description" content="本文主要记录一些模型量化出现精度问题时的分析思路以及背后的数学原理，聚焦于量化底噪和 gain 对于输出相对误差的影响，以及低秩分支量化对底噪的影响。 gain 的定义及其直观理解我们知道一个各向同性（列向量两两正交且模长相等）的输入 $x\in\mathbb{R}^{M\times K}$ 满足 $x^\top x&#x3D;\frac{\Vert x\Vert ^2_F}{K}I$，此时考虑任意线性变换">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-08T03:22:00.000Z">
-<meta property="article:modified_time" content="2026-09-08T12:51:51.741Z">
+<meta property="article:modified_time" content="2026-09-08T13:22:57.347Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -204,7 +204,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          4.5k 字
+          4.6k 字
         
       </span>
     
@@ -215,7 +215,7 @@
         
         
         
-          38 分钟
+          39 分钟
         
       </span>
     
@@ -266,11 +266,12 @@
 &=\frac{\Vert x\Vert ^2_F}{K}\text{Tr}(AA^\top)\\
 &=\frac{\Vert x\Vert ^2_F\Vert A\Vert _F^2}{K}
 \end{align*}</script><p>下面我们将 $\Vert x\Vert _F$ 简写为 $\Vert x\Vert $，即：</p>
-<script type="math/tex; mode=display">\Vert xA^\top\Vert =\frac{\Vert x\Vert \Vert A\Vert }{\sqrt{K}}</script><p>由此我们引出 gain 的定义：</p>
 <script type="math/tex; mode=display">
-\begin{align}
-\text{gain}(A)=\frac{\Vert xA^\top\Vert /\Vert x\Vert }{\Vert A\Vert /\sqrt{K}}=\frac{\text{激活}\ x\ \text{经过}\ A\ \text{的放大率}}{\text{随机方向经过}\ A\ \text{的平均放大率}}
-\end{align}</script><p>显然当 $x$ 各向同性时 $\text{gain}(A)=1$。一个 $K=2$ 的小例子，假设 $A$ 两个方向的奇异值分别为 1 和 10，则 $\Vert A\Vert =\sqrt{1^2+10^2}\approx10.05$，基线放大率为 $10.05/\sqrt2 \approx 7.11$，考虑三种情况：</p>
+\Vert xA^\top\Vert =\frac{\Vert x\Vert \Vert A\Vert }{\sqrt{K}}</script><p>由此我们引出 gain 的定义：</p>
+<script type="math/tex; mode=display">
+\begin{align*}
+\text{gain}(A)=\frac{\Vert xA^\top\Vert /\Vert x\Vert }{\Vert A\Vert /\sqrt{K}}=\frac{\text{激活}\ x\ \text{经过}\ A\ \text{的放大率}}{\text{随机方向经过}\ A\ \text{的平均放大率}}\tag{1}
+\end{align*}</script><p>显然当 $x$ 各向同性时 $\text{gain}(A)=1$。一个 $K=2$ 的小例子，假设 $A$ 两个方向的奇异值分别为 1 和 10，则 $\Vert A\Vert =\sqrt{1^2+10^2}\approx10.05$，基线放大率为 $10.05/\sqrt2 \approx 7.11$，考虑三种情况：</p>
 <ul>
 <li>激活全落在 $v_1$：实际放大 1 倍，$\text{gain}=1/7.11=0.141$</li>
 <li>激活全落在 $v_2$：实际放大 10 倍，$\text{gain}=10/7.11=1.41$（$=\sqrt2$，这是上限）</li>
@@ -295,14 +296,14 @@
 \Vert xE_W^\top\Vert \approx\frac{\Vert x\Vert \Vert E_W\Vert }{\sqrt{K}}=\frac{\Vert E_W\Vert }{\Vert W\Vert }\cdot\frac{\Vert x\Vert \Vert W\Vert }{\sqrt{K}}=\varepsilon_W\cdot\frac{\Vert x\Vert \Vert W\Vert }{\sqrt{K}}
 \end{align*}</script><p>其中 $\varepsilon$ 表示量化对激活或权重本身造成的相对舍入误差。激活和权重的舍入误差互不相干，所以又有：</p>
 <script type="math/tex; mode=display">
-\begin{align}
+\begin{align*}
 \Vert y-\hat{y}\Vert &=\sqrt{\Vert E_xW^\top\Vert ^2+\Vert xE_W^\top\Vert ^2}\notag\\
-&=\sqrt{\varepsilon_x^2+\varepsilon_W^2}\cdot\frac{\Vert x\Vert \Vert W\Vert }{\sqrt{K}}
-\end{align}</script><p>量化给最终输出带来的相对误差为 $\text{err}=\frac{\Vert \hat{y}-y\Vert }{\Vert y\Vert }=\frac{\Vert \hat{y}-y\Vert }{\Vert xW^\top\Vert }$，由 (1)，(2) 两式可得：</p>
+&=\sqrt{\varepsilon_x^2+\varepsilon_W^2}\cdot\frac{\Vert x\Vert \Vert W\Vert }{\sqrt{K}}\tag{2}
+\end{align*}</script><p>量化给最终输出带来的相对误差为 $\text{err}=\frac{\Vert \hat{y}-y\Vert }{\Vert y\Vert }=\frac{\Vert \hat{y}-y\Vert }{\Vert xW^\top\Vert }$，由 (1)，(2) 两式可得：</p>
 <script type="math/tex; mode=display">
-\begin{align}
-\text{err}=\sqrt{\varepsilon_x^2+\varepsilon_W^2}\cdot\frac{\Vert x\Vert \Vert W\Vert }{\Vert xW^\top\Vert \sqrt{K}}=\frac{\sqrt{\varepsilon_x^2+\varepsilon_W^2}}{\text{gain}(W)}
-\end{align}</script><h1 id="量化误差的分析思路"><a href="#量化误差的分析思路" class="headerlink" title="量化误差的分析思路"></a>量化误差的分析思路</h1><p>$\text{err}\times\text{gain}(W)=\sqrt{\varepsilon_x^2+\varepsilon_W^2}$ 这个漂亮的公式能给误差分析工作带来很大的指导意义：在量化的实践中我们往往是已知一个量化方案的舍入误差的（底噪），所以只需要根据校准数据集的实际激活计算出待量化权重的 gain，以及最终量化结果的实际相对误差，就能根据这些数据判断整个量化流程是否在符合预期地 work。</p>
+\begin{align*}
+\text{err}=\sqrt{\varepsilon_x^2+\varepsilon_W^2}\cdot\frac{\Vert x\Vert \Vert W\Vert }{\Vert xW^\top\Vert \sqrt{K}}=\frac{\sqrt{\varepsilon_x^2+\varepsilon_W^2}}{\text{gain}(W)}\tag{3}
+\end{align*}</script><h1 id="量化误差的分析思路"><a href="#量化误差的分析思路" class="headerlink" title="量化误差的分析思路"></a>量化误差的分析思路</h1><p>$\text{err}\times\text{gain}(W)=\sqrt{\varepsilon_x^2+\varepsilon_W^2}$ 这个漂亮的公式能给误差分析工作带来很大的指导意义：在量化的实践中我们往往是已知一个量化方案的舍入误差的（底噪），所以只需要根据校准数据集的实际激活计算出待量化权重的 gain，以及最终量化结果的实际相对误差，就能根据这些数据判断整个量化流程是否在符合预期地 work。</p>
 <p>比如，模型量化后实测结果不符合预期，排查时通过计算发现 $\text{err}\times\text{gain}(W)$ 明显大于量化方案的预期底噪，这往往就能说明量化后的相对误差（$\frac{\Vert E_W\Vert }{\Vert W\Vert }$）不全是舍入误差，很有可能是量化 pipeline 中引入了其他变量。</p>
 <blockquote>
 <p>笔者在进行 svdquant 的过程中曾经发生过按照 sample 轴并行量化时不同 rank 减去了不同的低秩分支，但合并 checkpoint 时统一加回 rank0 的低秩分支，从而导致底噪数量级增加的事故，正是通过这种方式逐步排查发现的。</p>
@@ -315,13 +316,13 @@ W&=L_1L_2+R\\
 \text{Quant}(W)&=L_1L_2+\text{Quant}(R)
 \end{align*}</script><p>而且 svdquant 论文中的做法是高精度低秩分支使用未量化的 16bit 激活，所以此时 (2) 式对应改为：</p>
 <script type="math/tex; mode=display">
-\begin{align}
-\Vert y-\hat{y}\Vert &=\sqrt{\varepsilon_x^2+\varepsilon_R^2}\cdot\frac{\Vert x\Vert \Vert R\Vert }{\sqrt{K}}
-\end{align}</script><p>(3) 式改为：</p>
+\begin{align*}
+\Vert y-\hat{y}\Vert &=\sqrt{\varepsilon_x^2+\varepsilon_R^2}\cdot\frac{\Vert x\Vert \Vert R\Vert }{\sqrt{K}}\tag{4}
+\end{align*}</script><p>(3) 式改为：</p>
 <script type="math/tex; mode=display">
 \begin{align}
 \text{err}&=\sqrt{\varepsilon_x^2+\varepsilon_R^2}\cdot\frac{\Vert x\Vert \Vert R\Vert }{\Vert xW^\top\Vert \sqrt{K}}\notag\\
-&=\frac{\sqrt{\varepsilon_x^2+\varepsilon_R^2}}{\text{gain}(W)}\cdot\frac{\Vert R\Vert }{\Vert W\Vert }
+&=\frac{\sqrt{\varepsilon_x^2+\varepsilon_R^2}}{\text{gain}(W)}\cdot\frac{\Vert R\Vert }{\Vert W\Vert}\tag{5}
 \end{align}</script><p>从 (5) 式中我们不难看出，低秩分支的剥离本质上是给量化方案的底噪乘上了一个系数 $\frac{\Vert R\Vert }{\Vert W\Vert }$。而从奇异值分解的角度来看，这个系数和奇异值谱的关系是（假设低秩分支数为 32，所有 $\sigma$ 已按降序排列）：</p>
 <script type="math/tex; mode=display">
 \begin{align*}
@@ -722,7 +723,6 @@ F_{32}&=\frac{\sum_{i=1}^{32}\sigma_i^2}{\sum_{i=1}^{K}\sigma_i^2}\\
       <script>
         MathJax = {
           tex    : {
-            tags: 'ams',
             inlineMath: { '[+]': [['$', '$']] }
           },
           loader : {
