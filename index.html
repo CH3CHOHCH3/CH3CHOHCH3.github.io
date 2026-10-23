@@ -278,7 +278,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2026/09/08/quant_err/" target="_self">
         <div>
-          本文主要记录一些模型量化出现精度问题时的分析思路以及背后的数学原理，聚焦于量化底噪和 gain 对于输出相对误差的影响，以及低秩分支量化对底噪的影响。 gain 的定义及其直观理解我们知道一个各向同性（列向量两两正交且模长相等）的输入 $x\in\mathbb{R}^{M\times K}$ 满足 $x^\top x&#x3D;\frac{\Vert x\Vert ^2_F}{K}I$，此时考虑任意线性变换
+          本文主要记录一些模型量化出现精度问题时的分析思路以及背后的数学原理，聚焦于量化底噪和 gain 对于输出相对误差的影响，以及低秩分支量化对底噪的影响。 gain 的定义及其直观理解 我们知道一个各向同性（列向量两两正交且模长相等）的输入 \(x\in\mathbb{R}^{M\times K}\) 满足 \(x^\top x&#x3D;\frac{\Vert x\Vert ^2_F}{K}I\)，此时考虑任
         </div>
       </a>
 
@@ -400,7 +400,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2022/11/15/elgamal/" target="_self">
         <div>
-          ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础群设$G$是一个具有代数运算$\circ$的非空集合，满足：  结合律：$\forall a,b,c\in G$，有$(a\c
+          ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础 群 设\(G\)是一个具有代数运算\(\circ\)的非空集合，满足： + 结合律：\(\forall a,b,c\in G
         </div>
       </a>
 
@@ -461,7 +461,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2022/10/20/rsa/" target="_self">
         <div>
-          非对称密码（公钥密码）体系非对称密码体系是 1976 年被正式提出的概念，弥补了对称密码的一些缺陷。 其基本方案是：用户生成公钥 $pub$ 和私钥 $pri$，公钥向他人公开并用于信息加密，私钥由本人保管并用于信息解密。 RSA 是 1977 年被提出的公钥密码算法，其核心原理是数论中的欧拉定理，被广泛用于互联网的方方面面（包括 ssh，https 等关键设施）。在量子计算机还未成熟的今天，RS
+          非对称密码（公钥密码）体系 非对称密码体系是 1976 年被正式提出的概念，弥补了对称密码的一些缺陷。 其基本方案是：用户生成公钥 \(pub\) 和私钥 \(pri\)，公钥向他人公开并用于信息加密，私钥由本人保管并用于信息解密。 RSA 是 1977 年被提出的公钥密码算法，其核心原理是数论中的欧拉定理，被广泛用于互联网的方方面面（包括 ssh，https 等关键设施）。在量子计算机还未成熟的
         </div>
       </a>
 
@@ -522,7 +522,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2022/05/11/git_proxy/" target="_self">
         <div>
-          环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ipWSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。
+          环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ip WSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。 配置 git
         </div>
       </a>
 

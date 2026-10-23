@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://ch3chohch3.github.io/2022/05/11/git_proxy/</loc>
+    <loc>https://ch3chohch3.github.io/2022/11/15/elgamal/</loc>
     
     <lastmod>2026-10-23</lastmod>
     
@@ -11,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/2026/09/08/quant_err/</loc>
+    <loc>https://ch3chohch3.github.io/2022/05/11/git_proxy/</loc>
     
     <lastmod>2026-10-23</lastmod>
     
@@ -29,7 +29,7 @@
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/2026/08/18/svdquant/</loc>
+    <loc>https://ch3chohch3.github.io/2026/09/08/quant_err/</loc>
     
     <lastmod>2026-10-23</lastmod>
     
@@ -47,7 +47,7 @@
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/about/index.html</loc>
+    <loc>https://ch3chohch3.github.io/2026/08/18/svdquant/</loc>
     
     <lastmod>2026-10-23</lastmod>
     
@@ -56,7 +56,7 @@
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/2022/11/15/elgamal/</loc>
+    <loc>https://ch3chohch3.github.io/about/index.html</loc>
     
     <lastmod>2026-10-23</lastmod>
     
@@ -104,14 +104,14 @@
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/categories/AI-Infra/%E9%87%8F%E5%8C%96/</loc>
+    <loc>https://ch3chohch3.github.io/categories/AI-Infra/%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E/</loc>
     <lastmod>2026-10-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://ch3chohch3.github.io/categories/AI-Infra/%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E/</loc>
+    <loc>https://ch3chohch3.github.io/categories/AI-Infra/%E9%87%8F%E5%8C%96/</loc>
     <lastmod>2026-10-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>

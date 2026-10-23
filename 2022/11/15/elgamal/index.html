@@ -16,15 +16,15 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础群设$G$是一个具有代数运算$\circ$的非空集合，满足：  结合律：$\forall a,b,c\in G$，有$(a\c">
+    <meta name="description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础 群 设\(G\)是一个具有代数运算\(\circ\)的非空集合，满足： + 结合律：\(\forall a,b,c\in G">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ELGamal算法及其原根的求取">
 <meta property="og:url" content="https://ch3chohch3.github.io/2022/11/15/elgamal/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础群设$G$是一个具有代数运算$\circ$的非空集合，满足：  结合律：$\forall a,b,c\in G$，有$(a\c">
+<meta property="og:description" content="ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。 数学基础 群 设\(G\)是一个具有代数运算\(\circ\)的非空集合，满足： + 结合律：\(\forall a,b,c\in G">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-11-15T11:35:00.000Z">
-<meta property="article:modified_time" content="2026-10-23T09:47:13.287Z">
+<meta property="article:modified_time" content="2026-10-23T10:52:03.441Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -204,7 +204,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1k 字
+          2.5k 字
         
       </span>
     
@@ -215,7 +215,7 @@
         
         
         
-          9 分钟
+          22 分钟
         
       </span>
     
@@ -257,58 +257,162 @@
             
             <div class="markdown-body">
               
-              <p>ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于 RSA，ELGamal 的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。</p>
-<h1 id="数学基础"><a href="#数学基础" class="headerlink" title="数学基础"></a>数学基础</h1><h2 id="群"><a href="#群" class="headerlink" title="群"></a>群</h2><p>设$G$是一个具有代数运算$\circ$的非空集合，满足：</p>
-<ul>
-<li>结合律：$\forall a,b,c\in G$，有$(a\circ b)\circ c=a\circ(b\circ c)$；</li>
-<li>单位元：$\exists e\in G$，满足$\forall a\in G,e\circ a=a\circ e=a$；</li>
-<li>逆元：$\forall a\in G$，存在$a^{-1}\in G,a\circ a^{-1}=a^{-1}\circ a=e$；</li>
-</ul>
-<p>称$G$关于$\circ$构成一个<strong>群</strong>（group）。满足交换律的群称为交换群（阿贝尔群）。根据元素是否有限，群分为有限群和无限群；有限群$G$中的元素个数称为群的<strong>阶</strong>，记为$|G|$。</p>
-<p>在模$m$的<a href="https://ch3chohch3.github.io/2022/10/20/rsa/#%E7%AE%80%E5%8C%96%E5%89%A9%E4%BD%99%E7%B3%BB">简化剩余系</a>中，考虑模$m$意义下的乘法运算；乘法满足结合律，$1$是单位元，且由扩展欧几里得算法每个元素都有模$m$意义下的乘法逆元。因此，模$m$的简化剩余系关于模$m$意义下的乘法构成一个群，记作$Z_m^\ast$。</p>
-<h2 id="循环群"><a href="#循环群" class="headerlink" title="循环群"></a>循环群</h2><p>在群上定义幂运算，即$a^n=a\circ a\circ…\circ a$（共$n$个$a$），同时规定：</p>
-<ul>
-<li>$a^0=e$</li>
-<li>$a^{-n}=(a^{-1})^n$</li>
-</ul>
-<p>对于群中的元素$a$，其阶$|a|$指的是使$a^m=e$成立的最小正整数$m$。若群$G$中存在元素$a$，使得$G$中所有元素都能由$a$的幂表示，则称$G$为<strong>循环群</strong>，元素$a$为$G$的生成元，记作$G=\langle a\rangle$。</p>
-<h2 id="原根"><a href="#原根" class="headerlink" title="原根"></a>原根</h2><p>设$gcd(a,m)=1$，若使$a^d\equiv 1\pmod m$成立的最小正整数$d=\varphi(m)$，则称$a$是模$m$的<strong>原根</strong>。藉由原根的概念，我们来证明当$m$有原根时，<strong>模$m$的简化剩余系乘群是一个循环群，其生成元为$m$的原根</strong>。</p>
-<p>显然$|Z_m^\ast|=\varphi(m)$，考虑$m$的一个原根$a\in Z_m^\ast$，若要证明$Z_m^\ast$是以$a$为生成元的循环群，则只需证</p>
-<script type="math/tex; mode=display">a^0,a^1,...,a^{\varphi(m)-1}</script><p>在模$m$意义下两两不同。设正整数$x,y$满足</p>
-<script type="math/tex; mode=display">0\leq x<y\leq\varphi(m)-1,</script><p>若</p>
-<script type="math/tex; mode=display">a^x\equiv a^y\pmod m,</script><p>则有$a^{y-x}\equiv1\pmod m$，易知$0&lt;y-x&lt;\varphi(m)$，这与$a$是模$m$的原根矛盾，因此</p>
-<script type="math/tex; mode=display">a^0,a^1,...,a^{\varphi(m)-1}</script><p>在模$m$意义下两两不同。反之，这也证明$Z_m^\ast$中不是$m$原根的元素一定不是生成元。</p>
+              <p>ELGamal 是 RSA 之外的另一个公钥加密体系，于 1985 年提出。相较于
+RSA，ELGamal
+的运算速度更慢，密文长度更大；其优势是对于质数大小的要求更低一些，而且由于随机数的选取，即使是同一个私钥，加密同样的信息，也会得到不同的结果，提高了安全性。</p>
+<h1 id="数学基础">数学基础</h1>
+<h2 id="群">群</h2>
+<p>设<span class="math inline">\(G\)</span>是一个具有代数运算<span
+class="math inline">\(\circ\)</span>的非空集合，满足： + 结合律：<span
+class="math inline">\(\forall a,b,c\in G\)</span>，有<span
+class="math inline">\((a\circ b)\circ c=a\circ(b\circ c)\)</span>； +
+单位元：<span class="math inline">\(\exists e\in G\)</span>，满足<span
+class="math inline">\(\forall a\in G,e\circ a=a\circ e=a\)</span>； +
+逆元：<span class="math inline">\(\forall a\in G\)</span>，存在<span
+class="math inline">\(a^{-1}\in G,a\circ a^{-1}=a^{-1}\circ
+a=e\)</span>；</p>
+<p>称<span class="math inline">\(G\)</span>关于<span
+class="math inline">\(\circ\)</span>构成一个<strong>群</strong>（group）。满足交换律的群称为交换群（阿贝尔群）。根据元素是否有限，群分为有限群和无限群；有限群<span
+class="math inline">\(G\)</span>中的元素个数称为群的<strong>阶</strong>，记为<span
+class="math inline">\(|G|\)</span>。</p>
+<p>在模<span
+class="math inline">\(m\)</span>的<a href="https://ch3chohch3.github.io/2022/10/20/rsa/#%E7%AE%80%E5%8C%96%E5%89%A9%E4%BD%99%E7%B3%BB">简化剩余系</a>中，考虑模<span
+class="math inline">\(m\)</span>意义下的乘法运算；乘法满足结合律，<span
+class="math inline">\(1\)</span>是单位元，且由扩展欧几里得算法每个元素都有模<span
+class="math inline">\(m\)</span>意义下的乘法逆元。因此，模<span
+class="math inline">\(m\)</span>的简化剩余系关于模<span
+class="math inline">\(m\)</span>意义下的乘法构成一个群，记作<span
+class="math inline">\(Z_m^\ast\)</span>。</p>
+<h2 id="循环群">循环群</h2>
+<p>在群上定义幂运算，即<span class="math inline">\(a^n=a\circ
+a\circ...\circ a\)</span>（共<span
+class="math inline">\(n\)</span>个<span
+class="math inline">\(a\)</span>），同时规定： + <span
+class="math inline">\(a^0=e\)</span> + <span
+class="math inline">\(a^{-n}=(a^{-1})^n\)</span></p>
+<p>对于群中的元素<span class="math inline">\(a\)</span>，其阶<span
+class="math inline">\(|a|\)</span>指的是使<span
+class="math inline">\(a^m=e\)</span>成立的最小正整数<span
+class="math inline">\(m\)</span>。若群<span
+class="math inline">\(G\)</span>中存在元素<span
+class="math inline">\(a\)</span>，使得<span
+class="math inline">\(G\)</span>中所有元素都能由<span
+class="math inline">\(a\)</span>的幂表示，则称<span
+class="math inline">\(G\)</span>为<strong>循环群</strong>，元素<span
+class="math inline">\(a\)</span>为<span
+class="math inline">\(G\)</span>的生成元，记作<span
+class="math inline">\(G=\langle a\rangle\)</span>。</p>
+<h2 id="原根">原根</h2>
+<p>设<span class="math inline">\(gcd(a,m)=1\)</span>，若使<span
+class="math inline">\(a^d\equiv 1\pmod m\)</span>成立的最小正整数<span
+class="math inline">\(d=\varphi(m)\)</span>，则称<span
+class="math inline">\(a\)</span>是模<span
+class="math inline">\(m\)</span>的<strong>原根</strong>。藉由原根的概念，我们来证明当<span
+class="math inline">\(m\)</span>有原根时，<strong>模<span
+class="math inline">\(m\)</span>的简化剩余系乘群是一个循环群，其生成元为<span
+class="math inline">\(m\)</span>的原根</strong>。</p>
+<p>显然<span
+class="math inline">\(|Z_m^\ast|=\varphi(m)\)</span>，考虑<span
+class="math inline">\(m\)</span>的一个原根<span
+class="math inline">\(a\in Z_m^\ast\)</span>，若要证明<span
+class="math inline">\(Z_m^\ast\)</span>是以<span
+class="math inline">\(a\)</span>为生成元的循环群，则只需证 <span
+class="math display">\[a^0,a^1,...,a^{\varphi(m)-1}\]</span> 在模<span
+class="math inline">\(m\)</span>意义下两两不同。设正整数<span
+class="math inline">\(x,y\)</span>满足 <span
+class="math display">\[0\leq x&lt;y\leq\varphi(m)-1,\]</span> 若 <span
+class="math display">\[a^x\equiv a^y\pmod m,\]</span> 则有<span
+class="math inline">\(a^{y-x}\equiv1\pmod m\)</span>，易知<span
+class="math inline">\(0&lt;y-x&lt;\varphi(m)\)</span>，这与<span
+class="math inline">\(a\)</span>是模<span
+class="math inline">\(m\)</span>的原根矛盾，因此 <span
+class="math display">\[a^0,a^1,...,a^{\varphi(m)-1}\]</span> 在模<span
+class="math inline">\(m\)</span>意义下两两不同。反之，这也证明<span
+class="math inline">\(Z_m^\ast\)</span>中不是<span
+class="math inline">\(m\)</span>原根的元素一定不是生成元。</p>
 <blockquote>
-<p>上面我们证明了$Z_m^\ast$的生成元和$m$的原根是一一对应的关系，与此同时，我们还容易证明有限循环群$G$生成元的个数为$\varphi(|G|)$，进而可以得到$m$原根的个数恰为$\varphi(\varphi(m))$。另外，并非所有正整数都有原根，只有当$m=2,4,p^n,2p^n$（$p$为奇素数，$n$为正整数）时，$m$才有原根。</p>
+<p>上面我们证明了<span
+class="math inline">\(Z_m^\ast\)</span>的生成元和<span
+class="math inline">\(m\)</span>的原根是一一对应的关系，与此同时，我们还容易证明有限循环群<span
+class="math inline">\(G\)</span>生成元的个数为<span
+class="math inline">\(\varphi(|G|)\)</span>，进而可以得到<span
+class="math inline">\(m\)</span>原根的个数恰为<span
+class="math inline">\(\varphi(\varphi(m))\)</span>。另外，并非所有正整数都有原根，只有当<span
+class="math inline">\(m=2,4,p^n,2p^n\)</span>（<span
+class="math inline">\(p\)</span>为奇素数，<span
+class="math inline">\(n\)</span>为正整数）时，<span
+class="math inline">\(m\)</span>才有原根。</p>
 </blockquote>
-<h2 id="离散对数问题"><a href="#离散对数问题" class="headerlink" title="离散对数问题"></a>离散对数问题</h2><p>设$G=\langle a\rangle$，群$G$中的离散对数问题是指：给定$G$中元素$h$，找到正整数$k$满足</p>
-<script type="math/tex; mode=display">
-h=a^k.</script><p>我们把$k$称为$h$相对于生成元的离散对数，记作</p>
-<script type="math/tex; mode=display">
-k=log_ah.</script><p>$Z_m^\ast$中，已知生成元和指定元素，求离散对数的问题是一个困难问题；如同 RSA 中蕴含的困难问题是大数质因数分解，ELGamal 的安全性基于离散对数的求解难题。</p>
-<h1 id="算法流程"><a href="#算法流程" class="headerlink" title="算法流程"></a>算法流程</h1><h2 id="密钥生成"><a href="#密钥生成" class="headerlink" title="密钥生成"></a>密钥生成</h2><ol>
-<li>取一个较大素数$p$；</li>
-<li>求$Z_p^\ast$的一个生成元$g$；</li>
-<li>任取$1&lt;\alpha&lt;p-1$，计算$\beta=g^\alpha\bmod p$；</li>
+<h2 id="离散对数问题">离散对数问题</h2>
+<p>设<span class="math inline">\(G=\langle a\rangle\)</span>，群<span
+class="math inline">\(G\)</span>中的离散对数问题是指：给定<span
+class="math inline">\(G\)</span>中元素<span
+class="math inline">\(h\)</span>，找到正整数<span
+class="math inline">\(k\)</span>满足 <span class="math display">\[
+h=a^k.
+\]</span> 我们把<span class="math inline">\(k\)</span>称为<span
+class="math inline">\(h\)</span>相对于生成元的离散对数，记作 <span
+class="math display">\[
+k=log_ah.
+\]</span></p>
+<p><span
+class="math inline">\(Z_m^\ast\)</span>中，已知生成元和指定元素，求离散对数的问题是一个困难问题；如同
+RSA 中蕴含的困难问题是大数质因数分解，ELGamal
+的安全性基于离散对数的求解难题。</p>
+<h1 id="算法流程">算法流程</h1>
+<h2 id="密钥生成">密钥生成</h2>
+<ol type="1">
+<li>取一个较大素数<span class="math inline">\(p\)</span>；</li>
+<li>求<span class="math inline">\(Z_p^\ast\)</span>的一个生成元<span
+class="math inline">\(g\)</span>；</li>
+<li>任取<span
+class="math inline">\(1&lt;\alpha&lt;p-1\)</span>，计算<span
+class="math inline">\(\beta=g^\alpha\bmod p\)</span>；</li>
 </ol>
-<p>其中$(p,g,\beta)$作为公钥，$\alpha$作为私钥。</p>
-<h2 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h2><ol>
-<li>给定待加密信息$x$，选择随机整数$1&lt;k&lt;p-1$；</li>
-<li>计算$E(x,k)=(r,s)$，其中$r=g^k\bmod p$，$s=x\beta^k\bmod p$；</li>
+<p>其中<span class="math inline">\((p,g,\beta)\)</span>作为公钥，<span
+class="math inline">\(\alpha\)</span>作为私钥。</p>
+<h2 id="加密">加密</h2>
+<ol type="1">
+<li>给定待加密信息<span
+class="math inline">\(x\)</span>，选择随机整数<span
+class="math inline">\(1&lt;k&lt;p-1\)</span>；</li>
+<li>计算<span class="math inline">\(E(x,k)=(r,s)\)</span>，其中<span
+class="math inline">\(r=g^k\bmod p\)</span>，<span
+class="math inline">\(s=x\beta^k\bmod p\)</span>；</li>
 </ol>
-<p>$(r,s)$就是加密完成后的信息。</p>
-<h2 id="解密"><a href="#解密" class="headerlink" title="解密"></a>解密</h2><ol>
-<li>收到信息$(r,s)$；</li>
-<li>计算$D(r,s)=sr^{-\alpha}\bmod p=xg^{\alpha k}g^{-\alpha k}\bmod p=x$；</li>
+<p><span class="math inline">\((r,s)\)</span>就是加密完成后的信息。</p>
+<h2 id="解密">解密</h2>
+<ol type="1">
+<li>收到信息<span class="math inline">\((r,s)\)</span>；</li>
+<li>计算<span class="math inline">\(D(r,s)=sr^{-\alpha}\bmod
+p=xg^{\alpha k}g^{-\alpha k}\bmod p=x\)</span>；</li>
 </ol>
-<p>这样就得到明文$x$。</p>
-<h1 id="原根的求取"><a href="#原根的求取" class="headerlink" title="原根的求取"></a>原根的求取</h1><p>在实际使用 ELGamal 加密时，一个难点在于如何获取较大素数的原根。我们知道有限群中任意元素的阶整除群的阶，那么对于$Z_p^\ast$而言，所有元素的阶都是$\varphi(p)=p-1$的因数。这为我们提供了一种方法：</p>
-<ol>
-<li>随机生成大质数$q$，直到$p=2q+1$也是质数；</li>
-<li>随机选取$1&lt;g&lt;p-1$，那么$g$的阶必然是$p-1=2q$的因数，即$g$的阶只有$2,q,2q$三种可能。</li>
-<li>若$g^2\equiv1\pmod p$或$g^q\equiv1\pmod p$，说明$g$不是$p$的原根，否则$g$即为求得的一个原根。</li>
+<p>这样就得到明文<span class="math inline">\(x\)</span>。</p>
+<h1 id="原根的求取">原根的求取</h1>
+<p>在实际使用 ELGamal
+加密时，一个难点在于如何获取较大素数的原根。我们知道有限群中任意元素的阶整除群的阶，那么对于<span
+class="math inline">\(Z_p^\ast\)</span>而言，所有元素的阶都是<span
+class="math inline">\(\varphi(p)=p-1\)</span>的因数。这为我们提供了一种方法：</p>
+<ol type="1">
+<li>随机生成大质数<span class="math inline">\(q\)</span>，直到<span
+class="math inline">\(p=2q+1\)</span>也是质数；</li>
+<li>随机选取<span
+class="math inline">\(1&lt;g&lt;p-1\)</span>，那么<span
+class="math inline">\(g\)</span>的阶必然是<span
+class="math inline">\(p-1=2q\)</span>的因数，即<span
+class="math inline">\(g\)</span>的阶只有<span
+class="math inline">\(2,q,2q\)</span>三种可能。</li>
+<li>若<span class="math inline">\(g^2\equiv1\pmod p\)</span>或<span
+class="math inline">\(g^q\equiv1\pmod p\)</span>，说明<span
+class="math inline">\(g\)</span>不是<span
+class="math inline">\(p\)</span>的原根，否则<span
+class="math inline">\(g\)</span>即为求得的一个原根。</li>
 </ol>
-<p>随机选取$g$的形式虽然看起来时间开销无法保障，但是对于$p=2q+1$而言，其原根的个数有$\varphi(\varphi(p))=q-1$之多，即每次随机选取有$\frac{1}{2}$的概率选取到原根，所以实际上不会花费很多时间。</p>
+<p>随机选取<span
+class="math inline">\(g\)</span>的形式虽然看起来时间开销无法保障，但是对于<span
+class="math inline">\(p=2q+1\)</span>而言，其原根的个数有<span
+class="math inline">\(\varphi(\varphi(p))=q-1\)</span>之多，即每次随机选取有<span
+class="math inline">\(\frac{1}{2}\)</span>的概率选取到原根，所以实际上不会花费很多时间。</p>
 
               
             </div>

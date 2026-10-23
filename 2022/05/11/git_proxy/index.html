@@ -16,15 +16,15 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ipWSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。">
+    <meta name="description" content="环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ip WSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。 配置 git">
 <meta property="og:type" content="article">
 <meta property="og:title" content="三种 git 协议的代理配置方法">
 <meta property="og:url" content="https://ch3chohch3.github.io/2022/05/11/git_proxy/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ipWSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。">
+<meta property="og:description" content="环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 12345 端口，打开允许来自局域网的连接。 获取windows的ip WSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 $(ip route | grep default | awk &#39;&amp;#123;print $3&amp;#125;&#39;):12345。 配置 git">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-05-11T10:34:00.000Z">
-<meta property="article:modified_time" content="2026-10-23T09:47:13.288Z">
+<meta property="article:modified_time" content="2026-10-23T10:52:03.441Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -257,24 +257,43 @@
             
             <div class="markdown-body">
               
-              <p>环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的 <code>12345</code> 端口，打开允许来自局域网的连接。</p>
-<h1 id="获取windows的ip"><a href="#获取windows的ip" class="headerlink" title="获取windows的ip"></a>获取windows的ip</h1><p>WSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是 <code>$(ip route | grep default | awk &#39;&#123;print $3&#125;&#39;):12345</code>。</p>
-<h1 id="配置-git-代理"><a href="#配置-git-代理" class="headerlink" title="配置 git 代理"></a>配置 git 代理</h1><h2 id="https"><a href="#https" class="headerlink" title="https://"></a>https://</h2><p>适用于形如 <code>git clone https://path/to/repository.git</code> 的命令：</p>
+              <p>环境：WSL2（Ubuntu-20.04.4 LTS），Proxy 运行在 windows 的
+<code>12345</code> 端口，打开允许来自局域网的连接。</p>
+<h1 id="获取windows的ip">获取windows的ip</h1>
+<p>WSL2 把 windows 的虚拟网卡 vEthernet 作为默认网关，所以代理地址是
+<code>$(ip route | grep default | awk '&#123;print $3&#125;'):12345</code>。</p>
+<h1 id="配置-git-代理">配置 git 代理</h1>
+<h2 id="https">https://</h2>
+<p>适用于形如 <code>git clone https://path/to/repository.git</code>
+的命令：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sh">$ <span class="hljs-built_in">export</span> http_proxy=http://$(ip route | grep default | awk <span class="hljs-string">&#x27;&#123;print $3&#125;&#x27;</span>):12345<br>$ <span class="hljs-built_in">export</span> https_proxy=http://$(ip route | grep default | awk <span class="hljs-string">&#x27;&#123;print $3&#125;&#x27;</span>):12345<br></code></pre></td></tr></table></figure>
-<h2 id="git"><a href="#git" class="headerlink" title="git@"></a>git@</h2><p>形如 <code>git clone git@github.com:path/to/repository.git</code> 的命令，本质上用了 ssh 和服务器通信，所以要配置 ssh 代理。配置文件在 <code>~/.ssh/config</code>：</p>
+<h2 id="git">git@</h2>
+<p>形如 <code>git clone git@github.com:path/to/repository.git</code>
+的命令，本质上用了 ssh 和服务器通信，所以要配置 ssh 代理。配置文件在
+<code>~/.ssh/config</code>：</p>
 <figure class="highlight perl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs perl">Host github.com<br>    HostName github.com<br>    User git<br>    IdentityFile ~<span class="hljs-regexp">/.ssh/gi</span>thub<br>    ProxyCommand <span class="hljs-keyword">connect</span> -H &lt;hostip&gt;:<span class="hljs-number">12345</span> %h %p<br></code></pre></td></tr></table></figure>
-<p>其中 <code>ProxyCommand</code> 这一项就是关于 ssh 代理的配置。<code>connect -H &lt;hostip&gt;:12345 %h %p</code> 是 ssh 连接时执行的命令。</p>
+<p>其中 <code>ProxyCommand</code> 这一项就是关于 ssh
+代理的配置。<code>connect -H &lt;hostip&gt;:12345 %h %p</code> 是 ssh
+连接时执行的命令。</p>
 <blockquote>
-<p>connect 可能需要通过 <code>apt install connect-proxy</code> 安装。<code>-H</code> 指明通过 http 协议进行连接，<code>&lt;hostip&gt;</code> 需要改成 vEthernet 的 ip，<code>%h %p</code> 是 ssh 命令自己传入的参数，即服务器的 hostname 和 port。</p>
+<p>connect 可能需要通过 <code>apt install connect-proxy</code>
+安装。<code>-H</code> 指明通过 http
+协议进行连接，<code>&lt;hostip&gt;</code> 需要改成 vEthernet 的
+ip，<code>%h %p</code> 是 ssh 命令自己传入的参数，即服务器的 hostname 和
+port。</p>
 </blockquote>
-<p>上面的命令唯一需要自己改写的地方就是 <code>&lt;hostip&gt;</code> ，可以在 <code>~/.bashrc</code> 中自动替换。</p>
-<h2 id="git-1"><a href="#git-1" class="headerlink" title="git://"></a>git://</h2><p>形如 <code>git clone git://path/to/repository</code> 的命令配置代理较为特殊。</p>
+<p>上面的命令唯一需要自己改写的地方就是 <code>&lt;hostip&gt;</code>
+，可以在 <code>~/.bashrc</code> 中自动替换。</p>
+<h2 id="git-1">git://</h2>
+<p>形如 <code>git clone git://path/to/repository</code>
+的命令配置代理较为特殊。</p>
 <p>首先要写一个执行代理命令的脚本，比如叫 <code>gitproxy.sh</code>：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sh"><span class="hljs-meta">#!/bin/sh</span><br>connect -H $(ip route | grep default | awk <span class="hljs-string">&#x27;&#123;print $3&#125;&#x27;</span>):12345 <span class="hljs-string">&quot;<span class="hljs-variable">$@</span>&quot;</span><br></code></pre></td></tr></table></figure>
 <p>用 <code>chmod +x gitproxy.sh</code> 添加执行权限。然后配置:</p>
 <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs stylus">$ git config <span class="hljs-attr">--global</span> core<span class="hljs-selector-class">.gitproxy</span> <span class="hljs-string">&quot;/path/to/gitproxy.sh&quot;</span><br></code></pre></td></tr></table></figure>
 <blockquote>
-<p>“$@” 在 sh 中表示脚本被执行时传入的全部参数，在这里的作用等同于 ssh 配置命令中的 <code>%h %p</code>。</p>
+<p>“$@” 在 sh 中表示脚本被执行时传入的全部参数，在这里的作用等同于 ssh
+配置命令中的 <code>%h %p</code>。</p>
 </blockquote>
 <p>至此，三种协议的 git 代理配置都已经列举完毕。</p>
 
