@@ -29,7 +29,7 @@
 <meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/engram.png">
 <meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/decode-throughput.png">
 <meta property="article:published_time" content="2026-11-03T07:55:00.000Z">
-<meta property="article:modified_time" content="2026-11-12T13:03:59.502Z">
+<meta property="article:modified_time" content="2026-11-12T13:10:06.901Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/arch.png">
@@ -375,8 +375,11 @@ class="math inline">\(k_t=W_ke_t\)</span> 与 <span
 class="math inline">\(v_t=W_ve_t\)</span>；</li>
 <li>通过本层输入的 hidden states <span
 class="math inline">\(h_t\)</span>
-计算静态记忆与当前语境的相关度，得到门控系数（标量）： <span
-class="math inline">\(\alpha_t=\text{Sigmod}(\frac{\text{RMSNorm}(h_t)^\top\text{RMSNorm}(k_t)}{\sqrt{d}})\)</span></li>
+计算静态记忆与当前语境的相关度，得到门控系数（标量）：</li>
+</ol>
+<p><span
+class="math display">\[\alpha_t=\text{Sigmod}(\frac{\text{RMSNorm}(h_t)^\top\text{RMSNorm}(k_t)}{\sqrt{d}})\]</span></p>
+<ol start="4" type="1">
 <li><span class="math inline">\(\alpha_t\)</span> 与 <span
 class="math inline">\(v_t\)</span> 进行标量缩放后再加回到 <span
 class="math inline">\(h_t\)</span>。</li>
