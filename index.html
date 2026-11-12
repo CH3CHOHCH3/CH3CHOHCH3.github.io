@@ -209,15 +209,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h1 class="index-header">
         
-        <a href="/2026/10/22/infer-system-capacity-estimation/" target="_self">
-          LLM 推理系统容量评估
+        <a href="/2026/11/03/deepseek-v4.1-flash-arch/" target="_self">
+          DeepSeek-V4.1-Flash 架构分析
         </a>
       </h1>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2026/10/22/infer-system-capacity-estimation/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2026/11/03/deepseek-v4.1-flash-arch/" target="_self">
         <div>
-          LLM 推理领域有很多具体的优化技术，比如模型量化、投机解码、通算重叠、前缀缓存、算子优化、请求&#x2F;专家负载均衡等等，这些技术每一个展开来讲都有很多的内容可说。但是如果你需要从 0 开始为自己的 LLM 构建具有一定规模的推理集群，并且对推理成本和线上服务质量负责，只对单个推理技术了如指掌是不够的，你需要一套思考框架来评估整个推理系统的容量和吞吐。 LLM 在线推理这套系统，本质上还是一个排队模型，
+          DeepSeek-V4.1-Flash（以下简称 V4.1）的技术报告标题就叫“Pushing the Limits of KV Cache Compression”，而事实上这个模型的架构设计也是为了应对动辄几百 K 上下文的 Agent 场景恐怖的 kvcache size。从效果上看，V4.1 的运行时每 token kvcache（全局）仅为 890 bytes，是 DeepSeek-V4
         </div>
       </a>
 
@@ -225,8 +225,8 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2026-10-22 21:55" pubdate>
-              2026-10-22
+            <time datetime="2026-11-03 15:55" pubdate>
+              2026-11-03
             </time>
           </div>
         
@@ -246,7 +246,7 @@
   
     <span>></span>
     
-  <a href="/categories/AI-Infra/%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E/" class="category-chain-item">推理引擎</a>
+  <a href="/categories/AI-Infra/%E7%AE%97%E6%B3%95/" class="category-chain-item">算法</a>
   
   
 

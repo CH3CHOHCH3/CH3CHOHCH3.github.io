@@ -16,21 +16,27 @@
   <meta name="author" content="CH3CHOHCH3">
   <meta name="keywords" content="">
   
-    <meta name="description" content="LLM 推理领域有很多具体的优化技术，比如模型量化、投机解码、通算重叠、前缀缓存、算子优化、请求&#x2F;专家负载均衡等等，这些技术每一个展开来讲都有很多的内容可说。但是如果你需要从 0 开始为自己的 LLM 构建具有一定规模的推理集群，并且对推理成本和线上服务质量负责，只对单个推理技术了如指掌是不够的，你需要一套思考框架来评估整个推理系统的容量和吞吐。 LLM 在线推理这套系统，本质上还是一个排队模型，">
+    <meta name="description" content="DeepSeek-V4.1-Flash（以下简称 V4.1）的技术报告标题就叫“Pushing the Limits of KV Cache Compression”，而事实上这个模型的架构设计也是为了应对动辄几百 K 上下文的 Agent 场景恐怖的 kvcache size。从效果上看，V4.1 的运行时每 token kvcache（全局）仅为 890 bytes，是 DeepSeek-V4">
 <meta property="og:type" content="article">
-<meta property="og:title" content="LLM 推理系统容量评估">
-<meta property="og:url" content="https://ch3chohch3.github.io/2026/10/22/infer-system-capacity-estimation/index.html">
+<meta property="og:title" content="DeepSeek-V4.1-Flash 架构分析">
+<meta property="og:url" content="https://ch3chohch3.github.io/2026/11/03/deepseek-v4.1-flash-arch/index.html">
 <meta property="og:site_name" content="CH3CHOHCH3&#39;s blog">
-<meta property="og:description" content="LLM 推理领域有很多具体的优化技术，比如模型量化、投机解码、通算重叠、前缀缓存、算子优化、请求&#x2F;专家负载均衡等等，这些技术每一个展开来讲都有很多的内容可说。但是如果你需要从 0 开始为自己的 LLM 构建具有一定规模的推理集群，并且对推理成本和线上服务质量负责，只对单个推理技术了如指掌是不够的，你需要一套思考框架来评估整个推理系统的容量和吞吐。 LLM 在线推理这套系统，本质上还是一个排队模型，">
+<meta property="og:description" content="DeepSeek-V4.1-Flash（以下简称 V4.1）的技术报告标题就叫“Pushing the Limits of KV Cache Compression”，而事实上这个模型的架构设计也是为了应对动辄几百 K 上下文的 Agent 场景恐怖的 kvcache size。从效果上看，V4.1 的运行时每 token kvcache（全局）仅为 890 bytes，是 DeepSeek-V4">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2026-10-22T13:55:00.000Z">
-<meta property="article:modified_time" content="2026-10-23T10:52:03.441Z">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/arch.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/csa2.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/hierarchical-sparse-indexer.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/engram.png">
+<meta property="og:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/decode-throughput.png">
+<meta property="article:published_time" content="2026-11-03T07:55:00.000Z">
+<meta property="article:modified_time" content="2026-11-12T13:03:59.502Z">
 <meta property="article:author" content="CH3CHOHCH3">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ch3chohch3.github.io/img/deepseek-v4.1-flash-arch/arch.png">
   
   
   
-  <title>LLM 推理系统容量评估 - CH3CHOHCH3&#39;s blog</title>
+  <title>DeepSeek-V4.1-Flash 架构分析 - CH3CHOHCH3&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -181,7 +187,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="LLM 推理系统容量评估"></span>
+            <span id="subtitle" data-typed-text="DeepSeek-V4.1-Flash 架构分析"></span>
           
         </div>
 
@@ -192,8 +198,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2026-10-22 21:55" pubdate>
-          2026年10月22日 晚上
+        <time datetime="2026-11-03 15:55" pubdate>
+          2026年11月3日 下午
         </time>
       </span>
     
@@ -204,7 +210,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          3.6k 字
+          4.4k 字
         
       </span>
     
@@ -215,7 +221,7 @@
         
         
         
-          31 分钟
+          37 分钟
         
       </span>
     
@@ -253,140 +259,190 @@
         <div id="board">
           <article class="post-content mx-auto">
             <!-- SEO header -->
-            <h1 style="display: none">LLM 推理系统容量评估</h1>
+            <h1 style="display: none">DeepSeek-V4.1-Flash 架构分析</h1>
             
             <div class="markdown-body">
               
-              <p>LLM
-推理领域有很多具体的优化技术，比如模型量化、投机解码、通算重叠、前缀缓存、算子优化、请求/专家负载均衡等等，这些技术每一个展开来讲都有很多的内容可说。但是如果你需要从
-0 开始为自己的 LLM
-构建具有一定规模的推理集群，并且对推理成本和线上服务质量负责，只对单个推理技术了如指掌是不够的，你需要一套思考框架来评估整个推理系统的容量和吞吐。</p>
-<p>LLM
-在线推理这套系统，本质上还是一个排队模型，所有的设计都是在这个大框架的前提下进行的。现实中，请求按照一定速率到达推理系统，先进行
-prefill，再进行自回归的 decode，其中用户感知到的最重要的 SLO 显然就是
-TTFT 和
-tps。而作为推理服务的提供者，推理系统的构建者，我们思考问题的主线始终是：怎么用更少的
-GPU，在满足 TTFT 和 tps 的前提下，serving 线上用户的所有请求。</p>
-<h1 id="推理系统建模">推理系统建模</h1>
-<p>让我们先构造这样一个模型：假设目前你的产品 DAU 是 <span
-class="math inline">\(N\)</span>，平均每个用户每天发送 <span
-class="math inline">\(x\)</span> 个请求，且峰值 rps 是日均 rps 的 <span
-class="math inline">\(K\)</span> 倍，那么你的推理系统必须能够承受 <span
-class="math inline">\(\frac{KNx}{86400}\)</span> 的 rps 并同时满足目标
-TTFT 和单用户 tps（或 ITL）。</p>
-<p>进一步考虑每个请求本身。我们假设大部分请求的输入输出长度方差并不大（这在很多业务场景下是成立的），因此我们可以用平均输入长度
-<span class="math inline">\(L_{\text{in}}\)</span> 和平均输出长度 <span
-class="math inline">\(L_{\text{out}}\)</span>
-表征一个请求，且输入中未命中 prefix cache 而真正需要计算 kvcache
-的长度为 <span
-class="math inline">\(L_{\text{extend}}\)</span>。现在我们已经有了
-rps，TTFT 和 tps，输入输出长度，可以开始着手估算我们推理系统的容量。</p>
-<p>但要注意，峰值容量的粗估并不能确保线上服务
-SLO，实际场景中由于请求到达间隔、请求长度、请求调度、组批方式等存在变化，我们需要在估计容量的基础上做进一步的冗余规划，实际目标利用率
-<span class="math inline">\(\rho_{\text{target}}\)</span>
-还需根据线上指标的反馈进行修正。</p>
-<h2 id="prefill">Prefill</h2>
-<p>prefill 作为 compute bound 的场景，其 throughput 在 <span
-class="math inline">\(L_{\text{extend}}\)</span>
-不特别小的情况下是容易达到上限的，所以组 batch 并不能提高 prefill
-的吞吐。假设我们的推理系统中一个 prefill 实例的最大吞吐是 <span
-class="math inline">\(T_{\text{prefill}}\)</span>，则系统达到最大负载的稳态时，所有
-prefill 实例的吞吐之和应该等于输入 token 到来的速率：</p>
-<p><span
-class="math display">\[P=\text{rps}\cdot\frac{L_{\text{extend}}}{T_{\text{prefill}}}\]</span></p>
-<p>这是从吞吐考虑得到的一个实例数下限，但吞吐满足需求不代表 TTFT
-不会超时。假设每个实例容纳的最大请求数为 <span
-class="math inline">\(B_{\text{prefill}}\)</span>，那么该实例中请求的最长耗时可以用
-<span
-class="math inline">\(B_{\text{prefill}}\cdot\frac{L_{\text{extend}}}{T_{\text{prefill}}}\)</span>
-估计，因此每个实例自身还需要满足：</p>
-<p><span class="math display">\[B_{\text{prefill}}&lt;\text{TTFT}\cdot
-\frac{T_{\text{prefill}}}{L_{\text{extend}}}\]</span></p>
-<h2 id="decode">Decode</h2>
-<p>decode 有着不同的计算特点，每轮自回归的输入只有单个 token 导致它
-bound 在 HBM 带宽。增大 batch size 可以提高 decode 整体的 throughput，但
-M 维度的增加会让每次 forward 的耗时随之非线性增长，因此每个用户感知到的
-tps 会下降。</p>
-<p>一个 decode 实例的吞吐、batch size 和单个用户感知的 tps
-之间满足：</p>
-<p><span
-class="math display">\[T_{\text{decode}}=B_{\text{decode}}\cdot\text{tps}\]</span></p>
-<p>根据 Little 定律，decode 系统中平均存在的请求数量：</p>
-<p><span class="math display">\[Q_{\text{decode}}=\text{rps}\cdot
-W_{\text{decode}}=\frac{\text{rps}\cdot
-L_{\text{out}}}{\text{tps}}\]</span></p>
-<p>则推理系统需要的 decode 实例数量为：</p>
-<p><span
-class="math display">\[D=\frac{Q_{\text{decode}}}{B_{\text{decode}}}=\frac{\text{rps}\cdot
-L_{\text{out}}}{B_{\text{decode}}\cdot\text{tps}}\]</span></p>
-<p>当然，<span class="math inline">\(B_{\text{decode}}\)</span> 和 tps
-之间存在某些因果关系，但这是更底层的技术细节，就目前来讲，我们已经知道减少
-decode 实例数量的关键是在 tps 下降到底线之前得到 <span
-class="math inline">\(T_{\text{decode}}={B_{\text{decode}}\cdot\text{tps}}\)</span>
-的最大值。</p>
-<h2 id="为什么-pd-分离是主流选择">为什么 PD 分离是主流选择</h2>
-<p>上面的分析中，我们默认分开了 prefill 和 decode
-而没有讨论单实例部署，PD 分离也是一个相当主流的方案。那么 PD 分离和使用
-chunked-prefill 和 continuous batch
-的单实例部署有什么优势呢？要知道，后者也已经极大削弱了长请求 prefill 对
-decode 的影响，而 PD 分离还会带来通信耗时、kvcache 管理等开销。</p>
-<p>其实 PD 分离和 chunked prefill 是同一个问题——如何在数十毫秒的 decode
-中插入数百毫秒至数秒的 prefill 而不让 tpot 和 ttft
-超时——的两种解法。通过把一个几百毫秒的 prefill 拆分成跟一次 decode
-耗时相近的 chunk，然后和 decode 一起 forward
-确实能很大程度上解决这个问题，且在一个 batch 中同时进行 prefill 和
-decode 也提高了硬件算力和带宽的利用率。但 pd 分离还能给我们带来以下几个
-benefit：</p>
+              <p><a
+target="_blank" rel="noopener" href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017">DeepSeek-V4.1-Flash</a>（以下简称
+V4.1）的<a
+target="_blank" rel="noopener" href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/DeepSeek_V41_Tech_Report.pdf">技术报告</a>标题就叫“Pushing
+the Limits of KV Cache
+Compression”，而事实上这个模型的架构设计也是为了应对动辄几百 K 上下文的
+Agent 场景恐怖的 kvcache size。从效果上看，V4.1 的运行时每 token
+kvcache（全局）仅为 890 bytes，是 DeepSeek-V4-Flash 的 1/4；而通过 SWA
+Bounded Replay 机制，V4.1 的每 token 持久化 kvcache 更是低至
+DeepSeek-V4-Flash 的 1/8。</p>
+<p>为了实现这样大幅的 kvcache 压缩，V4.1
+对模型架构做了比较复杂的设计，包括整体计算流程和层内 Attention
+实现在内的具体细节已经和几年前的 Decoder-Only LLM
+有了巨大的区别。然而万变不离其宗，Attention 的计算公式依然是 <span
+class="math inline">\(\text{Softmax}(\frac{QK^{\top}}{\sqrt{d_K}})V\)</span>，各种各样的压缩技术本质上是在解决“<span
+class="math inline">\(Q\)</span> 怎样和更少的 <span
+class="math inline">\(KV\)</span> 进行 Attention
+计算”。从这个视角出发，分析 V4.1 模型架构主要是研究每一层的 <span
+class="math inline">\(Q\)</span> 都在和哪些 <span
+class="math inline">\(KV\)</span> 做计算。</p>
+<h1
+id="cedcausal-encoder-decoder架构">CED（Causal-Encoder-Decoder）架构</h1>
+<div style="text-align:center">
+<p><img src="/img/deepseek-v4.1-flash-arch/arch.png" srcset="/img/loading.gif" lazyload> <text>图
+1：DeepSeek-V4.1-Flash 的 CED 架构总览</text></p>
+</div>
+<p>作为一个 VLM 模型，V4.1 的 vision 没有什么特别的地方，细节都在
+text。</p>
+<p>不同于传统 LLM，V4.1 将 40 层模型分为 20 层 Causal Encoder 和 20 层
+Decoder，除前两层是纯 SWA 外，每一层都是全局 Attention 和 SWA
+的混合架构，即与本层 <span class="math inline">\(Q\)</span> 进行
+Attention 计算的是经 indexer 从全局 kv 中选取的 selected kv 与 SWA kv
+拼接后得到的 kvcache。</p>
+<p>对于 Decode 来说，CED 架构和 40 层 Decoder-Only LLM
+的计算过程没有区别，差异主要体现在 Prefill。在 CED 架构下，Prefill
+过程只在前 20 层的 Causal Encoder 中计算全局 kvcache，后 20 层 Decoder
+的全局 kvcache 则全部由第 20 层输出的 hidden states 经由每个 Decoder
+自己的 projection weights 投影得到。SWA 的 kvcache
+则仍保持逐层计算，对于输入长度远大于 SWA window size
+的场景，这可以看作把 Prefill 的计算量砍半。</p>
+<p>后面我们会看到，在实际落地中，V4.1 只有第 21 层真正从第 20
+层的输出投影得到了全局 kvcache，第 22-40 层则通过 CSA2
+的设计复用了这份全局 kvcache。</p>
+<h1 id="csa2compressed-sparse-attention-2">CSA2（Compressed Sparse
+Attention 2）</h1>
+<p>除了全局 kv 与 SWA kv 的拼接，每层内部的 Attention
+架构还有其他细节。</p>
+<p>图 1 中可以看到，前两层 Causal Encoder 只有 SWA 的 kvcache
+参与计算。后续所有层的 CSA2(ratio, mode) 表示这一层 CSA2
+的压缩率（即多少个 token 生成一条 kvcache，q
+是不被压缩的）和不同模式：</p>
 <ol type="1">
-<li><strong>prefill 和 decode 的扩缩容灵活性</strong>：假设整个系统中
-prefill 和 decode 的负载比例发生了较大变化，如果是 PD 分离则可以直接对
-P、D 实例进行动态扩缩容，而混合部署的 chunk size
-如果不能适应当前负载，导致 prefill 吞吐过低或 decode 被严重挤压带来 tpot
-上升，就需要调整实例的超参。</li>
-<li><strong>prefill 和 decode 部署 config 的独立性</strong>：prefill 和
-decode 的算力带宽需求是不同的，采用不同的部署方式是很正常的选择，比如
-DeepSeek 开源 DeepInfer 时就介绍他们的 prefill 使用了 8 卡 GPU 机器，而
-decode 使用的是 64 卡的超节点。PD 分离让我们可以在 TP/EP/DP
-切分方式、最大 batch size、通信配置（偏向吞吐还是延迟）、kvcache
-空间配置等方面做更灵活的调整。</li>
-<li><strong>请求在实例间调度的自由性</strong>：PD
-不分离场景下，假设一个请求在实例 A 上有较长的 prefix cache 命中，但实例
-A 上 decode 的 batch size 已经很大，而实例 B 虽然未缓存该请求此前的
-kvcache，此时的 decode 却比较空闲，那么 PD
-不分离的话，是无法充分利用这两个实例各自的优势，来更好地 serving
-目标请求的。</li>
+<li>Full：全局 KV、Indexer 的 QK、Top-K 全部在本层重计算；</li>
+<li>Reindex：全局 KV、Indexer 的 K 复用最近 Full Mode 层的结果，Indexer
+的 Q 和 Top-K 依然在本层重计算；</li>
+<li>Reuse：全局 KV 来自最近的 Full Mode 层，Top-K 来自最近的 Full Mode
+或 Reindex Mode 层；</li>
 </ol>
-<p>PD 分离是以 GPU 为单位来分配给 prefill 和 decode 各自的算力，chunked
-prefill 则是在同一张卡上通过 chunked size 和 decode batch 调整 prefill
-和 decode
-各自占有的算力。对于规模较大的推理集群来说，这两者通常都可以满足我们调整
-pd 算力的需求。</p>
-<p>如果推理集群的规模本身不足，比如仅有 4 张 GPU 的情况下，如果 prefill
-本身只需要 5% 的资源来处理，分一张卡（25% 的资源）做 PD
-分离就会带来浪费。而 PD 分离所具有的三个独特优势，并不是采用 PD
-分离就能自动得到的，还需要我们建设配套的扩缩容机制、研究精细化的 PD
-性能优化、设计合理的 router 和 kvcache 管理机制。</p>
+<div style="text-align:center">
+<p><img src="/img/deepseek-v4.1-flash-arch/csa2.png" srcset="/img/loading.gif" lazyload> <text>图 2：CSA2
+的三种模式</text></p>
+</div>
+<p>结合图 1 可知，V4.1 中只有 4 层真正计算了全局 kvcache，且其中 Causal
+Encoder 的 3 层压缩率为 2，第 21 层是唯一计算全序列长度 kvcache
+的层。</p>
+<p>此外，图 1 中还存在名为 Hierachical Sparse Indexer 的机制，即第 21
+层的 Full Mode CSA2 从全局 kvcache 中挑选一个共享的候选位置 pool，后续
+Reindex 模式的 CSA2 不再从全局 kvcache 中选取
+Top-K，而是从固定大小的候选池中选取。</p>
+<div style="text-align:center">
+<p><img src="/img/deepseek-v4.1-flash-arch/hierarchical-sparse-indexer.png" srcset="/img/loading.gif" lazyload>
+<text>图 3：Hierarchical Sparse Indexer</text></p>
+</div>
+<p>这种设计又进一步使 Sparse attention 中 indexer
+环节的耗时不再随输入长度而增长，也是面向长上下文的一种优化技术。</p>
+<h1 id="mhc">mHC</h1>
+<p>原始的 transformer block 只有恒等和残差两条分支，一个 token
+的表征维度是 <span class="math inline">\(X\in\mathbb{R}^{1\times
+d}\)</span>，mHC 把每个 token 扩展为 <span
+class="math inline">\(X\in\mathbb{R}^{n\times d}\)</span>，然后对于
+attention 或 moe 对应的分支先投影回 <span
+class="math inline">\(\mathbb{R}^{1\times d}\)</span>
+再计算，本质是希望在不增大 attention/moe
+计算量的条件下加强表达能力，计算公式为：</p>
+<p><span
+class="math display">\[X_{l+1}=B_lX_l+C_l\mathcal{F}(A_{l-1}X_l),\qquad
+(A_l,B_l,C_l)=\mathcal{H}(X_l)\]</span></p>
+<p>其中 <span class="math inline">\(A\in\mathbb{R}^{1\times
+n},B\in\mathbb{R}^{n\times n},C\in\mathbb{R}^{n\times 1}\)</span> 是由
+<span class="math inline">\(X_l\)</span> 预测的逐 token 系数。<span
+class="math inline">\(A_{l-1}X_l\)</span> 的这个错位设计被 V4.1 称为
+Single-Pass mHC，目的是让 input mixing
+不必等待当前系数预测完成，便于进行 kernel fusion。</p>
+<p>从推理性能的角度来说其实并不关键，虽然增加了若干分支，但进入
+attention 与 moe 的分支依然只有一个，所以几乎不影响推理的计算量。</p>
+<h1 id="engram">Engram</h1>
+<p>V4.1 在第 2 层、第 15 层两个位置加入了
+Engram，设计这个结构的初衷是希望通过一个巨大的静态表将固定搭配、实体名称和静态常识等内容涵盖其中，从而将主干网络的
+attention 和 moe 从死记硬背中解放出来投入到推理中。</p>
+<p>它的落地形态表现为在 attention 与 moe 之前新增的一个流程：</p>
+<ol type="1">
+<li>2、3、4-gram 分别将当前位置（Prefill 中则是所有位置）和前若干个
+token 通过确定性的哈希映射，以 <span class="math inline">\(O(1)\)</span>
+的时间复杂度直接从 196B 的 Engram 表中拉取对应的静态 embedding
+向量；</li>
+<li>这些 embedding 经过 concat 得到记忆向量 <span
+class="math inline">\(e_t\)</span>，对 <span
+class="math inline">\(e_t\)</span> 分别进行投影得到 <span
+class="math inline">\(k_t=W_ke_t\)</span> 与 <span
+class="math inline">\(v_t=W_ve_t\)</span>；</li>
+<li>通过本层输入的 hidden states <span
+class="math inline">\(h_t\)</span>
+计算静态记忆与当前语境的相关度，得到门控系数（标量）： <span
+class="math inline">\(\alpha_t=\text{Sigmod}(\frac{\text{RMSNorm}(h_t)^\top\text{RMSNorm}(k_t)}{\sqrt{d}})\)</span></li>
+<li><span class="math inline">\(\alpha_t\)</span> 与 <span
+class="math inline">\(v_t\)</span> 进行标量缩放后再加回到 <span
+class="math inline">\(h_t\)</span>。</li>
+</ol>
+<p>下图是 Engram 的原始版本，它多对 <span
+class="math inline">\(\alpha_tv_t\)</span> 做了一次 conv1d，而 V4.1
+的技术报告声称这个卷积的推理开销大于它能得到的收益，所以将其去掉了。</p>
+<div style="text-align:center">
+<p><img src="/img/deepseek-v4.1-flash-arch/engram.png" srcset="/img/loading.gif" lazyload> <text>图
+4：Engram 的计算流程图</text></p>
+</div>
+<p>Engram 的哈希、查表、点积、标量缩放等操作对于推理来说基本上也是 0
+成本了，并没有大量的 weights loading 或大规模 GEMM，而且哈希的输入仅仅是
+token ID 本身，所以 embedding 的加载、拼接、投影还可以在所有 token
+进入计算之前就异步处理。</p>
+<h1 id="swa-bounded-replay">SWA Bounded Replay</h1>
+<p>前面提到 V4.1 只有 4 层存在真正的全局 kvcache，但 SWA kvcache
+是每一层都有的。V4.1 的报告中提到：</p>
+<blockquote>
+<p>Despite retaining only <span class="math inline">\(n_{win}\)</span>
+KV entries at designated positions, the uncompressed SWA KV cache still
+incurs a substantial storage overhead, especially in multi-turn
+conversations with short turns.</p>
+</blockquote>
+<p>报告指出，V4 的部署实践中，SWA KV 几乎占用了持久化 KV
+缓存容量的一半，但缓存 SWA KV 的性价比很低，因为它不能像全局 KV
+那样在每轮对话中都发挥作用，其生命周期通常是分钟级别的。</p>
+<p>而另一方面，SWA KV 未命中的代价又是无法接受的，因为虽然每一层 SWA KV
+的长度仅有 <span
+class="math inline">\(n_{win}\)</span>，意味着本层输入的 hidden states
+长度也只需 <span
+class="math inline">\(n_{win}\)</span>，但不要忘记每一行 hidden states
+都是该行对应的 Q 与该行前 <span class="math inline">\(n_{win}\)</span>
+行 KV 进行 Attention 计算得到的， 所以为了输出长度为 <span
+class="math inline">\(n_{win}\)</span> 的 hidden states，上一层的 SWA KV
+长度必须是 <span class="math inline">\(2n_{win}\)</span>。</p>
+<p>这就是 SWA 的感受野（Receptive Field）问题，最终导致为了计算出第 40
+层的 <span class="math inline">\(n_{win}\)</span> 条 SWA
+KV，需要在第一层输入 <span class="math inline">\(40n_{win}\)</span> 个
+token 重新进行 Prefill，“whose cost proved prohibitive in production
+deployments.”</p>
+<p>V4.1 的解法是不再往前找 <span class="math inline">\(n_{win}\)</span>
+条 KV，而是直接取最后 <span class="math inline">\(n_{win}\)</span> 个
+token 做 40 层 self-attention。由于全局 KV
+的存在，这样做并不会明显影响模型回答质量，但可以把 SWA KV 未命中而要重新
+Prefill 的 token 数量从 <span class="math inline">\(40n_{win}\)</span>
+减少到 <span class="math inline">\(n_{win}\)</span>
+个。报告中的解释是：</p>
+<blockquote>
+<p>prior work (Chen et al., 2025) has shown that the actual effective
+receptive field of SWA is much smaller than the theoretical <span
+class="math inline">\(n_{win}\times L/2\)</span>.</p>
+</blockquote>
 <h1 id="总结">总结</h1>
-<p>本文讨论了如何用排队模型估计推理系统中 P 和 D
-各自所需的容量，并探讨了 PD
-分离模式真正的优势。需要注意的是，我们只从实例层面评估了 P 和 D
-各自的容量，实际上无论是 P 实例还是 D 实例其内部的 GPU
-数量和单个实例的吞吐都依然是我们的优化目标，这些将在后续文章中进行探讨。</p>
-<p>有了这些认知，我们才能在心中设想一个完整的推理系统，才能对各个推理技术的端到端收益心里有数，进而为你的推理服务的性能与成本负责。</p>
-<h1 id="参考资料">参考资料</h1>
-<ol type="1">
-<li><p><a
-target="_blank" rel="noopener" href="https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf">DistServe:
-Disaggregating Prefill and Decoding for Goodput-optimized Large Language
-Model Serving</a></p></li>
-<li><p><a
-target="_blank" rel="noopener" href="https://axk51013.medium.com/llm-inference-%E5%B0%88%E6%AC%84-pd-%E5%88%86%E9%9B%A2-%E6%8A%8A-prefill-%E8%88%87-decode-%E6%8B%86%E9%96%8B-%E7%9C%9F%E7%9A%84%E6%AF%94%E8%BC%83%E5%BF%AB%E5%97%8E-a94e508b04f8">【LLM
-inference 專欄】PD 分離：把 Prefill 與 Decode
-拆開，真的比較快嗎</a></p></li>
-<li><p><a
-target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/pbL3p6rBsm3hQeoG00nnHQ">DeepSeek
-开源推理框架：96% 的输入，都不用重新计算</a></p></li>
-</ol>
+<p>V4.1 在架构上与早期纯 Decoder Transformer Block 组成的 LLM
+相比，已经有了非常复杂的改进，这些改进主要体现在对 Attention 计算量与 KV
+cache 存储压力的极大减少。不过 DeepSeek 在这一代依旧延续了 MLA
+的主干，并没有采用线性注意力，Moe
+部分也保持了比较传统的共享专家+路由专家设计。</p>
+<p>V4.1 的技术报告中还写了一些实际部署的优化方案，比如 DSpark 和 FP4
+kvcache，这些技术和主干模型的架构设计一起带来了惊人的推理吞吐，对于
+Infra 从业人员而言又是一份不得不品鉴的艺术。</p>
+<div style="text-align:center">
+<p><img src="/img/deepseek-v4.1-flash-arch/decode-throughput.png" srcset="/img/loading.gif" lazyload>
+<text>图 5：DeepInfer 在 GB200 上取得的 decode 吞吐</text></p>
+</div>
 
               
             </div>
@@ -409,7 +465,7 @@ target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/pbL3p6rBsm3hQeoG
   
     <span>></span>
     
-  <a href="/categories/AI-Infra/%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E/" class="category-chain-item">推理引擎</a>
+  <a href="/categories/AI-Infra/%E7%AE%97%E6%B3%95/" class="category-chain-item">算法</a>
   
   
 
@@ -431,8 +487,8 @@ target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/pbL3p6rBsm3hQeoG
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>LLM 推理系统容量评估</div>
-      <div>https://ch3chohch3.github.io/2026/10/22/infer-system-capacity-estimation/</div>
+      <div>DeepSeek-V4.1-Flash 架构分析</div>
+      <div>https://ch3chohch3.github.io/2026/11/03/deepseek-v4.1-flash-arch/</div>
     </div>
     <div class="license-meta">
       
@@ -444,7 +500,7 @@ target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/pbL3p6rBsm3hQeoG
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2026年10月22日</div>
+          <div>2026年11月3日</div>
         </div>
       
       
